@@ -104,8 +104,7 @@ Then select **Download**, and **restart Home Assistant**.
 1. Click the button above, or go to **Settings > Devices & Services > Add Integration** and
    search for **PageCrawl**.
 2. You are taken to PageCrawl to sign in and approve access for Home Assistant. A free account
-   is enough, and there is nothing to set up by hand: no API token, no keys, no Application
-   Credentials.
+   is enough, and there is nothing else to set up.
 3. If your account has more than one workspace, pick the one to add. To add another
    workspace later, run **Add Integration** again and pick a different workspace. Each
    workspace becomes its own entry with its own devices and entities.
