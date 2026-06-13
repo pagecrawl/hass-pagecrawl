@@ -341,26 +341,41 @@ action:
       entity_id: tts.home_assistant_cloud
 ```
 
-**Set the mood when the aurora might be visible.** An aurora forecast is a JavaScript dashboard
-that Home Assistant cannot scrape on its own. PageCrawl reads the live Kp index as a number
-sensor, so the house can react to a value it otherwise could not see:
+**Battle stations when limited tickets go live.** Ticketing pages block ordinary scrapers, so
+Home Assistant cannot watch one on its own. PageCrawl tracks the page's availability and flips a
+binary sensor the moment it goes on sale, and the whole house reacts at once:
 
 ```yaml
-alias: Aurora alert
+alias: Ticket drop battle stations
 trigger:
-  - platform: numeric_state
-    entity_id: sensor.aurora_forecast_kp_index
-    above: 5
+  - platform: state
+    entity_id: binary_sensor.arena_tickets_availability   # PageCrawl: on = on sale
+    to: "on"
 action:
   - service: light.turn_on
     target:
-      entity_id: light.bedroom
+      entity_id: light.office
     data:
-      rgb_color: [80, 255, 120]
-  - service: notify.notify
+      rgb_color: [255, 0, 0]
+      flash: short
+  - service: switch.turn_on
+    target:
+      entity_id: switch.desk_pc
+  - service: media_player.volume_set
+    target:
+      entity_id: media_player.kitchen
     data:
-      message: >-
-        Aurora likely tonight (Kp {{ states('sensor.aurora_forecast_kp_index') }}). Look up!
+      volume_level: 1.0
+  - service: tts.cloud_say
+    target:
+      entity_id: media_player.kitchen
+    data:
+      message: "Arena tickets are on sale. Go, go, go!"
+  - service: notify.mobile_app_phone
+    data:
+      message: "Arena tickets are on sale"
+      data:
+        url: "{{ state_attr('sensor.arena_tickets', 'diff_url') }}"
 ```
 
 **Notify when an appointment slot opens.** PageCrawl monitors a login-gated booking page and
