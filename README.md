@@ -397,13 +397,6 @@ The integration can create monitors (with `pagecrawl.track_page`) and read and c
 but changes and removals are managed in the PageCrawl web app. Screenshot and visual diff
 images are exposed as attribute URLs; native image entities may come later.
 
-## Notes
-
-- This integration is fully asynchronous and adds no extra Python dependencies.
-- hassfest and HACS validation run on every push via GitHub Actions. Submission to the
-  default HACS store and the [home-assistant/brands](https://github.com/home-assistant/brands)
-  icon listing are planned follow-ups.
-
 ## License
 
 See [LICENSE](LICENSE).
