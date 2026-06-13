@@ -76,6 +76,8 @@ SERVICE_CHECK_NOW_SCHEMA = vol.Schema(
     {
         vol.Optional("entity_id"): cv.entity_ids,
         vol.Optional("device_id"): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional("slug"): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional("monitor_id"): vol.All(cv.ensure_list, [cv.string]),
     }
 )
 
@@ -428,5 +430,20 @@ def _resolve_targets(
                 continue
             seen.add(key)
             targets.append((entry.runtime_data.client, monitor_id))
+
+    # Resolve by PageCrawl slug or monitor id against imported monitors.
+    slugs = {str(s) for s in (call.data.get("slug", []) or [])}
+    monitor_ids = {str(m) for m in (call.data.get("monitor_id", []) or [])}
+    if slugs or monitor_ids:
+        for entry in _entries_with_runtime(hass):
+            data = entry.runtime_data.coordinator.data or {}
+            for mid, page in data.items():
+                if str(mid) not in monitor_ids and page.get("slug") not in slugs:
+                    continue
+                key = (entry.entry_id, mid)
+                if key in seen:
+                    continue
+                seen.add(key)
+                targets.append((entry.runtime_data.client, mid))
 
     return targets

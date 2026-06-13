@@ -95,6 +95,99 @@ async def test_fires_change_event_on_changed_at_advance(
     assert data["slug"] == "acme-widget"
 
 
+async def test_change_event_enriches_ai_data_poll_shape(
+    hass: HomeAssistant, mock_config_entry, sample_pages
+) -> None:
+    """The event resolves ai_summary/score from the poll shape (checks[0])."""
+    coordinator = _make_coordinator(hass, mock_config_entry, sample_pages)
+
+    events: list[Any] = []
+    hass.bus.async_listen(EVENT_CHANGE, lambda e: events.append(e))
+
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    advanced = [dict(sample_pages[0])]
+    advanced[0]["latest"] = {
+        **sample_pages[0]["latest"],
+        "changed_at": "2026-06-13T11:30:00.000000Z",
+    }
+    coordinator.client.async_list_pages = AsyncMock(return_value=advanced)
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    assert len(events) == 1
+    data = events[0].data
+    assert data["status"] == sample_pages[0].get("status")
+    assert data["ai_summary"] == "The widget price dropped by 5 percent."
+    assert data["ai_priority_score"] == 72.0
+
+
+async def test_change_event_enriches_ai_data_push_shape(
+    hass: HomeAssistant, mock_config_entry, sample_pages
+) -> None:
+    """A pushed update resolves ai_summary/score from latest (push shape)."""
+    coordinator = _make_coordinator(hass, mock_config_entry, sample_pages)
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    events: list[Any] = []
+    hass.bus.async_listen(EVENT_CHANGE, lambda e: events.append(e))
+
+    coordinator.apply_webhook_update(
+        {
+            "id": 1001,
+            "status": "ok",
+            "changed_at": "2026-06-13T12:00:00.000000Z",
+            "ai_summary": "Pushed AI summary from latest.",
+            "ai_priority_score": 91,
+        }
+    )
+    await hass.async_block_till_done()
+
+    assert len(events) == 1
+    data = events[0].data
+    assert data["status"] == "ok"
+    assert data["ai_summary"] == "Pushed AI summary from latest."
+    assert data["ai_priority_score"] == 91.0
+
+
+async def test_change_event_ai_data_none_when_absent(
+    hass: HomeAssistant, mock_config_entry, sample_pages
+) -> None:
+    """ai_summary/ai_priority_score are None when no AI data is present."""
+    page = {
+        "id": 1001,
+        "slug": "acme-widget",
+        "status": "ok",
+        "latest": {"changed_at": "2026-06-13T10:00:00.000000Z"},
+    }
+    coordinator = _make_coordinator(hass, mock_config_entry, [page])
+
+    events: list[Any] = []
+    hass.bus.async_listen(EVENT_CHANGE, lambda e: events.append(e))
+
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    advanced = [
+        {
+            "id": 1001,
+            "slug": "acme-widget",
+            "status": "ok",
+            "latest": {"changed_at": "2026-06-13T11:00:00.000000Z"},
+        }
+    ]
+    coordinator.client.async_list_pages = AsyncMock(return_value=advanced)
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    assert len(events) == 1
+    data = events[0].data
+    assert data["ai_summary"] is None
+    assert data["ai_priority_score"] is None
+
+
 async def test_no_event_when_changed_at_stable(
     hass: HomeAssistant, mock_config_entry, sample_pages
 ) -> None:

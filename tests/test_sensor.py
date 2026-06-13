@@ -458,6 +458,51 @@ async def test_check_now_service_targets_device(
     setup_integration.async_check_now.assert_awaited_with(1001)
 
 
+async def test_check_now_service_targets_slug(
+    hass, setup_integration, mock_config_entry
+):
+    """pagecrawl.check_now targeting a slug resolves the right monitor."""
+    from custom_components.pagecrawl.const import SERVICE_CHECK_NOW
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_CHECK_NOW,
+        {"slug": ["acme-widget"]},
+        blocking=True,
+    )
+    setup_integration.async_check_now.assert_awaited_with(1001)
+
+
+async def test_check_now_service_targets_monitor_id(
+    hass, setup_integration, mock_config_entry
+):
+    """pagecrawl.check_now targeting a monitor_id resolves the right monitor."""
+    from custom_components.pagecrawl.const import SERVICE_CHECK_NOW
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_CHECK_NOW,
+        {"monitor_id": ["1001"]},
+        blocking=True,
+    )
+    setup_integration.async_check_now.assert_awaited_with(1001)
+
+
+async def test_check_now_service_unknown_slug_no_call(
+    hass, setup_integration, mock_config_entry
+):
+    """An unknown slug resolves no targets, so the client is not called."""
+    from custom_components.pagecrawl.const import SERVICE_CHECK_NOW
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_CHECK_NOW,
+        {"slug": ["does-not-exist"]},
+        blocking=True,
+    )
+    setup_integration.async_check_now.assert_not_awaited()
+
+
 async def test_track_page_error_raises(
     hass, setup_integration, mock_config_entry
 ):

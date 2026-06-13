@@ -113,6 +113,14 @@
         "device_id": {
           "name": "Apparaten",
           "description": "Monitorapparaten die gecontroleerd moeten worden."
+        },
+        "slug": {
+          "name": "Paginaslug",
+          "description": "PageCrawl-monitorslug(s) die gecontroleerd moeten worden, te vinden in de monitor-URL (pagecrawl.io/app/pages/<slug>)."
+        },
+        "monitor_id": {
+          "name": "Monitor-id",
+          "description": "PageCrawl-monitor-id('s) die gecontroleerd moeten worden."
         }
       }
     },

@@ -113,6 +113,14 @@
         "device_id": {
           "name": "Urządzenia",
           "description": "Urządzenia monitorów do sprawdzenia."
+        },
+        "slug": {
+          "name": "Slug strony",
+          "description": "Slug(i) monitora PageCrawl do sprawdzenia, znajdujący się w adresie URL monitora (pagecrawl.io/app/pages/<slug>)."
+        },
+        "monitor_id": {
+          "name": "Id monitora",
+          "description": "Id monitora(ów) PageCrawl do sprawdzenia."
         }
       }
     },

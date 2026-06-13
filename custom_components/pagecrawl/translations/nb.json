@@ -113,6 +113,14 @@
         "device_id": {
           "name": "Enheter",
           "description": "Overvåkerenheter som skal sjekkes."
+        },
+        "slug": {
+          "name": "Side-slug",
+          "description": "PageCrawl-overvåker-slug(er) som skal sjekkes, som finnes i overvåker-URL-en (pagecrawl.io/app/pages/<slug>)."
+        },
+        "monitor_id": {
+          "name": "Overvåker-id",
+          "description": "PageCrawl-overvåker-id(er) som skal sjekkes."
         }
       }
     },

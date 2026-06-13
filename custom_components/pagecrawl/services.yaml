@@ -4,11 +4,28 @@ check_now:
   name: Check now
   description: >-
     Trigger an immediate check of one or more PageCrawl monitors, then refresh
-    their entities. Target any sensor, binary sensor, or button that belongs to
-    the monitor, or target the monitor device directly.
+    their entities. Target a sensor, binary sensor, or button (or the monitor
+    device), or identify the monitor by its PageCrawl slug or id.
   target:
     entity:
       integration: pagecrawl
+  fields:
+    slug:
+      name: Page slug
+      description: >-
+        PageCrawl monitor slug(s) to check (for example "openai-about"). Find it
+        in the monitor's URL: pagecrawl.io/app/pages/<slug>.
+      required: false
+      example: openai-about
+      selector:
+        text:
+    monitor_id:
+      name: Monitor id
+      description: PageCrawl monitor id(s) to check.
+      required: false
+      example: "12345"
+      selector:
+        text:
 
 track_page:
   name: Track a new page

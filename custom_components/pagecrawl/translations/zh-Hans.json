@@ -113,6 +113,14 @@
         "device_id": {
           "name": "设备",
           "description": "要检查的监控设备。"
+        },
+        "slug": {
+          "name": "页面 slug",
+          "description": "要检查的 PageCrawl 监控项 slug，可在监控项 URL 中找到（pagecrawl.io/app/pages/<slug>）。"
+        },
+        "monitor_id": {
+          "name": "监控项 ID",
+          "description": "要检查的 PageCrawl 监控项 ID。"
         }
       }
     },

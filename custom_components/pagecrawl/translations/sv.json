@@ -113,6 +113,14 @@
         "device_id": {
           "name": "Enheter",
           "description": "Övervakarenheter som ska kontrolleras."
+        },
+        "slug": {
+          "name": "Sidans slug",
+          "description": "PageCrawl-övervakarens slug att kontrollera, som finns i övervakarens URL (pagecrawl.io/app/pages/<slug>)."
+        },
+        "monitor_id": {
+          "name": "Övervakar-id",
+          "description": "PageCrawl-övervakarens id att kontrollera."
         }
       }
     },

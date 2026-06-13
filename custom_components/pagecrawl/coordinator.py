@@ -158,9 +158,12 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
                 "name": page.get("name"),
                 "url": page.get("url"),
                 "slug": slug,
+                "status": page.get("status"),
                 "contents": latest.get("contents"),
                 "difference": latest.get("difference"),
                 "human_difference": latest.get("human_difference"),
+                "ai_summary": _event_ai_summary(page),
+                "ai_priority_score": _event_ai_priority(page),
                 "diff_url": f"https://pagecrawl.io/app/pages/{slug}" if slug else None,
                 "changed_at": latest.get("changed_at"),
             },
@@ -279,3 +282,33 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
         target = timedelta(seconds=self._base_interval)
         if self.update_interval != target:
             self.update_interval = target
+
+
+def _event_ai_summary(page: dict[str, Any]) -> str | None:
+    """Resolve the AI summary from push (latest) or poll (checks[0]) shape."""
+    latest = page.get("latest") or {}
+    for value in (latest.get("ai_summary"), latest.get("short_summary")):
+        if value:
+            return value
+    checks = page.get("checks") or []
+    if checks:
+        first = checks[0] or {}
+        for value in (first.get("ai_summary"), first.get("short_summary")):
+            if value:
+                return value
+    return None
+
+
+def _event_ai_priority(page: dict[str, Any]) -> float | None:
+    """Resolve the AI priority score from push (latest) or poll (checks[0])."""
+    latest = page.get("latest") or {}
+    raw = latest.get("ai_priority_score")
+    if raw is None:
+        checks = page.get("checks") or []
+        raw = (checks[0] or {}).get("priority_score") if checks else None
+    if isinstance(raw, bool) or raw is None:
+        return None
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return None

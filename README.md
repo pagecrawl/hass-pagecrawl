@@ -14,19 +14,38 @@ PageCrawl detects a change.
 Home Assistant already fetches URLs and scrapes CSS selectors on simple, static pages. Reach
 for PageCrawl when those fall short:
 
-- **JavaScript-rendered pages** — prices, stock, and dashboards that load dynamically come
-  back empty from a plain fetch or scrape. PageCrawl loads the page fully before reading it,
-  so you still get a value.
-- **Sites a basic scraper can't reach** — pages behind a login, or that block automated
-  requests, keep working as reliable sensors.
-- **AI extraction instead of brittle selectors** — describe the value in plain language ("the
-  next collection date", "the current service status") and it keeps working even when the
-  page layout changes and a CSS selector would break.
-- **Meaningful-change detection** — PageCrawl tracks history and tells you what actually
-  changed, with a human-readable summary, instead of you polling a raw value and writing your
-  own diff logic.
-- **Visual change detection** — know when a page changes visually, backed by screenshots, not
+- **Sites that block ordinary scrapers:** pages that reject automated requests, or sit behind
+  a login, return nothing to a plain fetch. PageCrawl reliably reads them, so retail, ticketing,
+  and other guarded pages keep working as Home Assistant sensors.
+- **JavaScript-rendered pages:** prices, stock, and dashboards that load dynamically come back
+  empty from a plain fetch or scrape. PageCrawl loads the page fully before reading it, so you
+  still get a value.
+- **AI extraction instead of brittle selectors:** describe the value in plain language ("the
+  next collection date", "the current service status") and it keeps working even when the page
+  layout changes and a CSS selector would break.
+- **Change detection without false positives:** a raw `scrape` sensor fires on every rotating
+  ad, timestamp, or reordered block. PageCrawl's check pipeline filters that noise out, so you
+  are alerted only on changes that matter, with a human-readable summary of what changed.
+- **Visual change detection:** know when a page changes visually, backed by screenshots, not
   only when a text value moves.
+
+### Which one should you use?
+
+Home Assistant's built-in `rest` and `scrape` sensors are a great fit for many pages, and they
+run entirely locally. Reach for PageCrawl only when they fall short:
+
+| Use a built-in `rest` / `scrape` sensor when | Use PageCrawl when |
+|---|---|
+| The page is static, public HTML or a JSON API | The page needs JavaScript to render the value |
+| A stable CSS selector or JSON path exists | No reliable selector, or it breaks when the page changes |
+| The page has no login and allows automated requests | The page needs a login or blocks ordinary scrapers |
+| You only need the current value | You want change history, diffs, or a human/AI summary of what changed |
+| Any change to the value is meaningful | The page is noisy (ads, timestamps, reordered blocks) and you only want real changes |
+| You are happy maintaining the selector yourself | You want AI extraction and no scraping logic to maintain |
+
+A good rule of thumb: if a `scrape` sensor already returns the value you need, keep using it.
+Bring in PageCrawl for the pages where it comes back empty, gets blocked, or needs constant
+selector fixes.
 
 This is a custom integration (a HACS-installable custom component), not an add-on. Sensors
 in Home Assistant can only be created by an integration, so this works on every install
@@ -193,7 +212,14 @@ reconciliation poll catches up any element that a missed delivery would have ski
 ### `pagecrawl.check_now`
 
 Trigger an immediate check of one or more monitors, then refresh their entities. Target any
-entity or device that belongs to the monitor.
+entity or device that belongs to the monitor, or name the monitor directly by `slug` or
+`monitor_id` (no need to look up the Home Assistant device id):
+
+```yaml
+service: pagecrawl.check_now
+data:
+  slug: openai-about
+```
 
 ```yaml
 service: pagecrawl.check_now
@@ -245,16 +271,24 @@ action:
         {{ trigger.event.data.diff_url }}
 ```
 
-Event data includes `monitor_id`, `name`, `url`, `slug`, `contents`, `difference`,
-`human_difference`, `diff_url`, and `changed_at`.
+Event data includes `monitor_id`, `name`, `url`, `slug`, `status`, `contents`, `difference`,
+`human_difference`, `ai_summary`, `ai_priority_score`, `diff_url`, and `changed_at`. The
+`ai_summary` and `ai_priority_score` fields are present when AI analysis is enabled on the
+monitor, so you can filter and route changes straight from the event, with no per-monitor
+sensor lookups.
 
 ### More examples
 
-**Notify with the AI summary when a change is detected.** Use the per-monitor AI summary sensor
-in the message:
+These lean into the two things PageCrawl adds to Home Assistant: it reads values from pages
+that a plain `rest` or `scrape` sensor comes back empty on (JavaScript-rendered, login-gated,
+or bot-blocked), and it tells you what actually changed, with an AI summary and priority, so
+you can act on the physical world instead of just sending another notification.
+
+**Actionable mobile alert, tap to open the diff.** The whole change rides on the event, so one
+automation covers every monitor. The notification opens the diff when tapped:
 
 ```yaml
-alias: PageCrawl change with AI summary
+alias: PageCrawl change to my phone
 trigger:
   - platform: event
     event_type: pagecrawl_change
@@ -262,29 +296,37 @@ action:
   - service: notify.mobile_app_phone
     data:
       title: "Changed: {{ trigger.event.data.name }}"
-      message: "{{ state_attr('sensor.competitor_pricing_ai_summary', 'full_value') }}"
+      message: >-
+        {{ trigger.event.data.ai_summary or trigger.event.data.human_difference }}
+      data:
+        url: "{{ trigger.event.data.diff_url }}"
+        clickAction: "{{ trigger.event.data.diff_url }}"
 ```
 
-**Alert when a tracked price drops below your target.** Point this at a price sensor:
+**Only the changes worth interrupting you for.** PageCrawl scores how important each change is,
+so you can drop the noise. Filter on the score carried by the event, not a per-monitor sensor,
+so it stays correct no matter which monitor fired:
 
 ```yaml
-alias: Price drop alert
+alias: High-priority PageCrawl changes only
 trigger:
-  - platform: numeric_state
-    entity_id: sensor.acme_widget_price
-    below: 50
+  - platform: event
+    event_type: pagecrawl_change
+condition:
+  - condition: template
+    value_template: "{{ (trigger.event.data.ai_priority_score | int(0)) >= 70 }}"
 action:
   - service: notify.notify
     data:
-      message: >-
-        Acme Widget is now {{ states('sensor.acme_widget_price') }}
-        {{ state_attr('sensor.acme_widget_price', 'unit_of_measurement') }}.
+      title: "Important: {{ trigger.event.data.name }}"
+      message: "{{ trigger.event.data.ai_summary }} {{ trigger.event.data.diff_url }}"
 ```
 
-**Turn on a light when an out-of-stock item is back.** Availability monitors are binary sensors:
+**Back in stock: open the garage light and say it out loud.** Availability monitors are binary
+sensors, so the moment an item flips to in stock you can do something physical and announce it:
 
 ```yaml
-alias: Back in stock
+alias: PS5 back in stock
 trigger:
   - platform: state
     entity_id: binary_sensor.ps5_availability
@@ -294,12 +336,51 @@ action:
   - service: light.turn_on
     target:
       entity_id: light.office
-  - service: notify.notify
     data:
-      message: "PS5 is back in stock!"
+      flash: short
+  - service: tts.speak
+    data:
+      cache: false
+      media_player_entity_id: media_player.kitchen
+      message: "Heads up, the PlayStation 5 is back in stock."
+    target:
+      entity_id: tts.home_assistant_cloud
 ```
 
-**Re-check a monitor on a schedule** with the `check_now` action:
+**Charge the car when power is cheap.** Your dynamic energy tariff is a JavaScript dashboard
+that Home Assistant cannot scrape on its own. PageCrawl reads the live price as a number sensor,
+so you can let the house act on a value it otherwise could not see:
+
+```yaml
+alias: Charge EV on cheap power
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.grid_price_per_kwh
+    below: 0.12
+action:
+  - service: switch.turn_on
+    target:
+      entity_id: switch.ev_charger
+```
+
+**Notify when an appointment slot opens.** PageCrawl monitors a login-gated booking page and
+exposes the number of open slots as a count sensor. Fire the moment it goes above zero:
+
+```yaml
+alias: Appointment slots available
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.passport_office_slots
+    above: 0
+action:
+  - service: notify.mobile_app_phone
+    data:
+      title: "Slots open: {{ states('sensor.passport_office_slots') }}"
+      message: "Book now: {{ state_attr('sensor.passport_office_slots', 'url') }}"
+```
+
+**Recheck a monitor on a schedule by name.** Target the monitor by its `slug`, so you never
+have to dig up a Home Assistant device id:
 
 ```yaml
 alias: Hourly recheck of the status page
@@ -308,29 +389,12 @@ trigger:
     minutes: "0"
 action:
   - service: pagecrawl.check_now
-    target:
-      device_id: 1a2b3c4d5e6f7g8h9i0j
-```
-
-**Only notify on high-priority changes** using the AI priority sensor:
-
-```yaml
-alias: High-priority PageCrawl changes only
-trigger:
-  - platform: event
-    event_type: pagecrawl_change
-condition:
-  - condition: numeric_state
-    entity_id: sensor.terms_of_service_ai_priority
-    above: 70
-action:
-  - service: notify.notify
     data:
-      title: "Important change: {{ trigger.event.data.name }}"
-      message: "{{ trigger.event.data.human_difference }} {{ trigger.event.data.diff_url }}"
+      slug: your-monitor-slug
 ```
 
-Replace the example entity ids with your own (Home Assistant builds them from the monitor name).
+Replace the example entity ids and slugs with your own (Home Assistant builds entity ids from
+the monitor name, and the slug is the one in your monitor's pagecrawl.io URL).
 
 ## What is not supported yet
 

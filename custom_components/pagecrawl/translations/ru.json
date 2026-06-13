@@ -113,6 +113,14 @@
         "device_id": {
           "name": "Устройства",
           "description": "Устройства мониторов для проверки."
+        },
+        "slug": {
+          "name": "Slug страницы",
+          "description": "Slug(и) монитора PageCrawl для проверки, который указан в URL монитора (pagecrawl.io/app/pages/<slug>)."
+        },
+        "monitor_id": {
+          "name": "Идентификатор монитора",
+          "description": "Идентификатор(ы) монитора PageCrawl для проверки."
         }
       }
     },

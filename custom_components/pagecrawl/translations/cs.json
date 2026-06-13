@@ -113,6 +113,14 @@
         "device_id": {
           "name": "Zařízení",
           "description": "Zařízení monitorů, která se mají zkontrolovat."
+        },
+        "slug": {
+          "name": "Slug stránky",
+          "description": "Slug monitoru PageCrawl ke kontrole, který najdete v URL monitoru (pagecrawl.io/app/pages/<slug>)."
+        },
+        "monitor_id": {
+          "name": "ID monitoru",
+          "description": "ID monitoru PageCrawl ke kontrole."
         }
       }
     },

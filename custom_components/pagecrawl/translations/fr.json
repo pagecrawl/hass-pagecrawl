@@ -113,6 +113,14 @@
         "device_id": {
           "name": "Appareils",
           "description": "Appareils de surveillance à vérifier."
+        },
+        "slug": {
+          "name": "Slug de la page",
+          "description": "Slug(s) du moniteur PageCrawl à vérifier, visible(s) dans l'URL du moniteur (pagecrawl.io/app/pages/<slug>)."
+        },
+        "monitor_id": {
+          "name": "ID du moniteur",
+          "description": "ID(s) du moniteur PageCrawl à vérifier."
         }
       }
     },
