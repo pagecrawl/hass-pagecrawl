@@ -1,0 +1,147 @@
+{
+  "config": {
+    "step": {
+      "pick_implementation": {
+        "title": "Välj en autentiseringsmetod"
+      },
+      "workspace": {
+        "title": "Välj en workspace",
+        "description": "Ditt PageCrawl-konto har åtkomst till mer än en workspace. Välj den du vill lägga till i Home Assistant. Kör den här konfigurationen igen för att lägga till en till workspace.",
+        "data": {
+          "workspace_id": "Workspace"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Autentisera på nytt med PageCrawl",
+        "description": "Din PageCrawl-åtkomst har upphört eller återkallats. Logga in igen för att återansluta den här workspacen."
+      }
+    },
+    "abort": {
+      "already_configured": "Den här workspacen är redan konfigurerad.",
+      "already_in_progress": "Konfigurationen pågår redan.",
+      "oauth_error": "Tog emot ett ogiltigt svar vid inloggning till PageCrawl.",
+      "oauth_failed": "Kunde inte hämta en åtkomsttoken från PageCrawl.",
+      "oauth_timeout": "Tidsgränsen överskreds i väntan på behörighet från PageCrawl.",
+      "oauth_unauthorized": "PageCrawl avvisade behörighetsbegäran.",
+      "missing_configuration": "Integrationen är inte konfigurerad. Lägg till en Application Credential först.",
+      "missing_credentials": "Inga application credentials är tillgängliga.",
+      "authorize_url_timeout": "Tidsgränsen överskreds när behörighets-URL:en skulle genereras.",
+      "no_url_available": "Ingen URL är tillgänglig för OAuth-omdirigeringen. Se dokumentationen för hjälp.",
+      "user_rejected_authorize": "Behörigheten avbröts.",
+      "cannot_connect": "Kunde inte nå PageCrawl eller läsa ditt konto. Kontrollera din anslutning och försök igen.",
+      "no_workspaces": "Inga workspaces hittades på ditt PageCrawl-konto.",
+      "unknown_workspace": "Den valda workspacen kunde inte hittas.",
+      "wrong_account": "Det inloggade PageCrawl-kontot stämmer inte med den workspace som autentiseras på nytt.",
+      "reauth_successful": "Återanslöt till PageCrawl."
+    },
+    "create_entry": {
+      "default": "Ansluten till PageCrawl."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "PageCrawl-alternativ",
+        "description": "Välj hur den här workspacen tar emot uppdateringar. Push levererar ändringar i samma stund som PageCrawl upptäcker dem, men kräver en URL som PageCrawl kan nå (en prenumeration på Home Assistant Cloud fungerar automatiskt). Polling kontrollerar bara enligt ett schema och fungerar på installationer som endast är lokala.",
+        "data": {
+          "update_mode": "Uppdateringsläge",
+          "scan_interval": "Pollningsintervall (sekunder)",
+          "folder": "Mappfilter",
+          "tags": "Taggfilter"
+        },
+        "data_description": {
+          "update_mode": "Auto aktiverar push när en nåbar URL finns och pollar annars. Push och poll tvingar fram push med en långsam avstämningspollning. Endast polling registrerar aldrig någon webhook.",
+          "scan_interval": "Hur ofta pollning sker, i sekunder. Minst 60. Med push aktiverat är detta bara en långsam avstämningsslinga.",
+          "folder": "Begränsa den här workspacen till en enda PageCrawl-mapp via dess slug. Lämna tomt för alla mappar.",
+          "tags": "Begränsa till övervakare med dessa taggar, kommaseparerade. Lämna tomt för alla övervakare."
+        }
+      }
+    }
+  },
+  "selector": {
+    "update_mode": {
+      "options": {
+        "auto": "Auto (push när tillgängligt, annars polling)",
+        "push": "Push och poll",
+        "poll": "Endast polling"
+      }
+    }
+  },
+  "application_credentials": {
+    "description": "PageCrawl använder inbyggda autentiseringsuppgifter, så du behöver inte lägga till något här."
+  },
+  "services": {
+    "check_now": {
+      "name": "Kontrollera nu",
+      "description": "Utlös en omedelbar kontroll av en eller flera PageCrawl-övervakare och uppdatera sedan deras entiteter.",
+      "fields": {
+        "entity_id": {
+          "name": "Entiteter",
+          "description": "Entiteter som tillhör de övervakare som ska kontrolleras."
+        },
+        "device_id": {
+          "name": "Enheter",
+          "description": "Övervakarenheter som ska kontrolleras."
+        }
+      }
+    },
+    "track_page": {
+      "name": "Bevaka en ny sida",
+      "description": "Skapa en ny övervakare i PageCrawl. Redigering och borttagning av övervakare görs i PageCrawls webbapp.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "Webbadressen att börja övervaka."
+        },
+        "name": {
+          "name": "Namn",
+          "description": "Ett beskrivande namn för övervakaren. Standardvärdet är sidans titel."
+        },
+        "tracking_mode": {
+          "name": "Bevakningsläge",
+          "description": "Vad som ska bevakas på sidan. Lämna tomt för att bevaka hela sidan."
+        },
+        "selector": {
+          "name": "CSS-selektor",
+          "description": "För text- eller talbevakning, CSS-selektorn för elementet som ska bevakas."
+        },
+        "prompt": {
+          "name": "AI-prompt",
+          "description": "För AI-extrahering, instruktionen som beskriver vad som ska hämtas från sidan."
+        },
+        "frequency": {
+          "name": "Frekvens",
+          "description": "Hur ofta PageCrawl kontrollerar sidan på nytt."
+        },
+        "entry_id": {
+          "name": "Workspace (avancerat)",
+          "description": "Den workspace där övervakaren ska skapas. Behövs endast när mer än en PageCrawl-workspace är konfigurerad."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "last_checked": {
+        "name": "Senast kontrollerad"
+      },
+      "change_percent": {
+        "name": "Ändring i procent"
+      }
+    },
+    "button": {
+      "check_now": {
+        "name": "Kontrollera nu"
+      }
+    }
+  },
+  "issues": {
+    "push_unavailable": {
+      "title": "Push-uppdateringar från PageCrawl är inte tillgängliga",
+      "description": "PageCrawl kunde inte registrera push-uppdateringar för {workspace} eftersom ingen externt nåbar URL är tillgänglig. Den här workspacen använder nu polling. För att aktivera omedelbara uppdateringar, anslut Home Assistant Cloud eller exponera en nåbar URL och läs sedan om integrationen."
+    }
+  }
+}

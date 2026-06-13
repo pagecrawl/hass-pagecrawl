@@ -1,0 +1,147 @@
+{
+  "config": {
+    "step": {
+      "pick_implementation": {
+        "title": "Pick an authentication method"
+      },
+      "workspace": {
+        "title": "Choose a workspace",
+        "description": "Your PageCrawl account has access to more than one workspace. Pick the one to bring into Home Assistant. To add another workspace, run this setup again.",
+        "data": {
+          "workspace_id": "Workspace"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate with PageCrawl",
+        "description": "Your PageCrawl access has expired or was revoked. Sign in again to reconnect this workspace."
+      }
+    },
+    "abort": {
+      "already_configured": "This workspace is already set up.",
+      "already_in_progress": "Setup is already in progress.",
+      "oauth_error": "Received an invalid response while signing in to PageCrawl.",
+      "oauth_failed": "Could not get an access token from PageCrawl.",
+      "oauth_timeout": "Timed out while waiting for PageCrawl authorization.",
+      "oauth_unauthorized": "PageCrawl rejected the authorization request.",
+      "missing_configuration": "The integration is not configured. Add an Application Credential first.",
+      "missing_credentials": "No application credentials are available.",
+      "authorize_url_timeout": "Timed out generating the authorize URL.",
+      "no_url_available": "No URL is available for the OAuth redirect. See the documentation for help.",
+      "user_rejected_authorize": "Authorization was cancelled.",
+      "cannot_connect": "Could not reach PageCrawl or read your account. Check your connection and try again.",
+      "no_workspaces": "No workspaces were found on your PageCrawl account.",
+      "unknown_workspace": "The selected workspace could not be found.",
+      "wrong_account": "The signed-in PageCrawl account does not match the workspace being reauthenticated.",
+      "reauth_successful": "Reconnected to PageCrawl successfully."
+    },
+    "create_entry": {
+      "default": "Connected to PageCrawl successfully."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "PageCrawl options",
+        "description": "Choose how this workspace receives updates. Push delivers changes the moment PageCrawl detects them but needs a URL that PageCrawl can reach (a Home Assistant Cloud subscription works automatically). Polling only checks on a schedule and works on local-only installs.",
+        "data": {
+          "update_mode": "Update mode",
+          "scan_interval": "Poll interval (seconds)",
+          "folder": "Folder filter",
+          "tags": "Tag filter"
+        },
+        "data_description": {
+          "update_mode": "Auto enables push when a reachable URL is available and otherwise polls. Push and poll forces push with a slow reconcile poll. Polling only never registers a webhook.",
+          "scan_interval": "How often to poll, in seconds. Minimum 60. With push enabled this is only a slow reconciliation loop.",
+          "folder": "Limit this workspace to a single PageCrawl folder by its slug. Leave empty for all folders.",
+          "tags": "Limit to monitors with these tags, comma separated. Leave empty for all monitors."
+        }
+      }
+    }
+  },
+  "selector": {
+    "update_mode": {
+      "options": {
+        "auto": "Auto (push when available, otherwise poll)",
+        "push": "Push and poll",
+        "poll": "Polling only"
+      }
+    }
+  },
+  "application_credentials": {
+    "description": "PageCrawl uses built-in credentials, so you do not need to add anything here."
+  },
+  "services": {
+    "check_now": {
+      "name": "Check now",
+      "description": "Trigger an immediate check of one or more PageCrawl monitors, then refresh their entities.",
+      "fields": {
+        "entity_id": {
+          "name": "Entities",
+          "description": "Entities belonging to the monitors to check."
+        },
+        "device_id": {
+          "name": "Devices",
+          "description": "Monitor devices to check."
+        }
+      }
+    },
+    "track_page": {
+      "name": "Track a new page",
+      "description": "Create a new monitor in PageCrawl. Editing and removing monitors is done in the PageCrawl web app.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "The web address to start monitoring."
+        },
+        "name": {
+          "name": "Name",
+          "description": "A friendly name for the monitor. Defaults to the page title."
+        },
+        "tracking_mode": {
+          "name": "Tracking mode",
+          "description": "What to track on the page. Leave empty to track the full page."
+        },
+        "selector": {
+          "name": "CSS selector",
+          "description": "For text or number tracking, the CSS selector of the element to watch."
+        },
+        "prompt": {
+          "name": "AI prompt",
+          "description": "For AI extract tracking, the instruction describing what to pull from the page."
+        },
+        "frequency": {
+          "name": "Frequency",
+          "description": "How often PageCrawl rechecks the page."
+        },
+        "entry_id": {
+          "name": "Workspace (advanced)",
+          "description": "The workspace to create the monitor in. Only needed when more than one PageCrawl workspace is set up."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "last_checked": {
+        "name": "Last checked"
+      },
+      "change_percent": {
+        "name": "Change percent"
+      }
+    },
+    "button": {
+      "check_now": {
+        "name": "Check now"
+      }
+    }
+  },
+  "issues": {
+    "push_unavailable": {
+      "title": "PageCrawl push updates unavailable",
+      "description": "PageCrawl could not register push updates for {workspace} because no externally reachable URL is available. This workspace is now using polling. To enable instant updates, connect Home Assistant Cloud or expose a reachable URL, then reload the integration."
+    }
+  }
+}

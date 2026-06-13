@@ -1,0 +1,147 @@
+{
+  "config": {
+    "step": {
+      "pick_implementation": {
+        "title": "Scegli un metodo di autenticazione"
+      },
+      "workspace": {
+        "title": "Scegli un workspace",
+        "description": "Il tuo account PageCrawl ha accesso a più di un workspace. Scegli quello da aggiungere a Home Assistant. Per aggiungere un altro workspace, esegui di nuovo questa configurazione.",
+        "data": {
+          "workspace_id": "Workspace"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Autentica di nuovo con PageCrawl",
+        "description": "L'accesso a PageCrawl è scaduto o è stato revocato. Accedi di nuovo per riconnettere questo workspace."
+      }
+    },
+    "abort": {
+      "already_configured": "Questo workspace è già configurato.",
+      "already_in_progress": "La configurazione è già in corso.",
+      "oauth_error": "Risposta non valida durante l'accesso a PageCrawl.",
+      "oauth_failed": "Impossibile ottenere un token di accesso da PageCrawl.",
+      "oauth_timeout": "Timeout in attesa dell'autorizzazione di PageCrawl.",
+      "oauth_unauthorized": "PageCrawl ha rifiutato la richiesta di autorizzazione.",
+      "missing_configuration": "L'integrazione non è configurata. Aggiungi prima un Application Credential.",
+      "missing_credentials": "Nessun Application Credential disponibile.",
+      "authorize_url_timeout": "Timeout durante la generazione dell'URL di autorizzazione.",
+      "no_url_available": "Nessun URL disponibile per il reindirizzamento OAuth. Consulta la documentazione per assistenza.",
+      "user_rejected_authorize": "Autorizzazione annullata.",
+      "cannot_connect": "Impossibile raggiungere PageCrawl o leggere il tuo account. Controlla la connessione e riprova.",
+      "no_workspaces": "Nessun workspace trovato sul tuo account PageCrawl.",
+      "unknown_workspace": "Impossibile trovare il workspace selezionato.",
+      "wrong_account": "L'account PageCrawl con cui hai effettuato l'accesso non corrisponde al workspace da autenticare di nuovo.",
+      "reauth_successful": "Riconnessione a PageCrawl riuscita."
+    },
+    "create_entry": {
+      "default": "Connessione a PageCrawl riuscita."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni di PageCrawl",
+        "description": "Scegli come questo workspace riceve gli aggiornamenti. Il push invia le modifiche nel momento in cui PageCrawl le rileva, ma richiede un URL raggiungibile da PageCrawl (un abbonamento Home Assistant Cloud funziona automaticamente). Il polling controlla solo a intervalli pianificati e funziona anche su installazioni esclusivamente locali.",
+        "data": {
+          "update_mode": "Modalità di aggiornamento",
+          "scan_interval": "Intervallo di polling (secondi)",
+          "folder": "Filtro cartella",
+          "tags": "Filtro tag"
+        },
+        "data_description": {
+          "update_mode": "Auto abilita il push quando è disponibile un URL raggiungibile, altrimenti usa il polling. Push e polling forza il push con un polling di riconciliazione lento. Solo polling non registra mai un webhook.",
+          "scan_interval": "Con quale frequenza eseguire il polling, in secondi. Minimo 60. Con il push abilitato è solo un ciclo di riconciliazione lento.",
+          "folder": "Limita questo workspace a un'unica cartella PageCrawl tramite il suo slug. Lascia vuoto per tutte le cartelle.",
+          "tags": "Limita ai monitor con questi tag, separati da virgola. Lascia vuoto per tutti i monitor."
+        }
+      }
+    }
+  },
+  "selector": {
+    "update_mode": {
+      "options": {
+        "auto": "Auto (push se disponibile, altrimenti polling)",
+        "push": "Push e polling",
+        "poll": "Solo polling"
+      }
+    }
+  },
+  "application_credentials": {
+    "description": "PageCrawl usa credenziali integrate, quindi non è necessario aggiungere nulla qui."
+  },
+  "services": {
+    "check_now": {
+      "name": "Controlla ora",
+      "description": "Avvia un controllo immediato di uno o più monitor PageCrawl, quindi aggiorna le relative entità.",
+      "fields": {
+        "entity_id": {
+          "name": "Entità",
+          "description": "Entità appartenenti ai monitor da controllare."
+        },
+        "device_id": {
+          "name": "Dispositivi",
+          "description": "Dispositivi monitor da controllare."
+        }
+      }
+    },
+    "track_page": {
+      "name": "Monitora una nuova pagina",
+      "description": "Crea un nuovo monitor in PageCrawl. La modifica e la rimozione dei monitor si effettuano nell'app web di PageCrawl.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "L'indirizzo web da iniziare a monitorare."
+        },
+        "name": {
+          "name": "Nome",
+          "description": "Un nome descrittivo per il monitor. Per impostazione predefinita usa il titolo della pagina."
+        },
+        "tracking_mode": {
+          "name": "Modalità di monitoraggio",
+          "description": "Cosa monitorare nella pagina. Lascia vuoto per monitorare l'intera pagina."
+        },
+        "selector": {
+          "name": "Selettore CSS",
+          "description": "Per il monitoraggio di testo o numeri, il selettore CSS dell'elemento da osservare."
+        },
+        "prompt": {
+          "name": "Prompt AI",
+          "description": "Per il monitoraggio con estrazione AI, l'istruzione che descrive cosa estrarre dalla pagina."
+        },
+        "frequency": {
+          "name": "Frequenza",
+          "description": "Con quale frequenza PageCrawl ricontrolla la pagina."
+        },
+        "entry_id": {
+          "name": "Workspace (avanzato)",
+          "description": "Il workspace in cui creare il monitor. Necessario solo quando è configurato più di un workspace PageCrawl."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Stato"
+      },
+      "last_checked": {
+        "name": "Ultimo controllo"
+      },
+      "change_percent": {
+        "name": "Percentuale di modifica"
+      }
+    },
+    "button": {
+      "check_now": {
+        "name": "Controlla ora"
+      }
+    }
+  },
+  "issues": {
+    "push_unavailable": {
+      "title": "Aggiornamenti push di PageCrawl non disponibili",
+      "description": "PageCrawl non ha potuto registrare gli aggiornamenti push per {workspace} perché non è disponibile alcun URL raggiungibile dall'esterno. Questo workspace ora usa il polling. Per abilitare gli aggiornamenti istantanei, connetti Home Assistant Cloud o esponi un URL raggiungibile, quindi ricarica l'integrazione."
+    }
+  }
+}

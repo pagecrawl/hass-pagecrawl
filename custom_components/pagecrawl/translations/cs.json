@@ -1,0 +1,147 @@
+{
+  "config": {
+    "step": {
+      "pick_implementation": {
+        "title": "Vyberte způsob ověření"
+      },
+      "workspace": {
+        "title": "Vyberte pracovní prostor",
+        "description": "Váš účet PageCrawl má přístup k více než jednomu pracovnímu prostoru. Vyberte ten, který chcete přidat do Home Assistant. Chcete-li přidat další pracovní prostor, spusťte toto nastavení znovu.",
+        "data": {
+          "workspace_id": "Pracovní prostor"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Znovu se ověřit u PageCrawl",
+        "description": "Váš přístup k PageCrawl vypršel nebo byl zrušen. Pro opětovné připojení tohoto pracovního prostoru se znovu přihlaste."
+      }
+    },
+    "abort": {
+      "already_configured": "Tento pracovní prostor je již nastaven.",
+      "already_in_progress": "Nastavení již probíhá.",
+      "oauth_error": "Při přihlašování k PageCrawl byla přijata neplatná odpověď.",
+      "oauth_failed": "Z PageCrawl se nepodařilo získat přístupový token.",
+      "oauth_timeout": "Vypršel časový limit při čekání na autorizaci PageCrawl.",
+      "oauth_unauthorized": "PageCrawl zamítl žádost o autorizaci.",
+      "missing_configuration": "Integrace není nakonfigurována. Nejprve přidejte Application Credential.",
+      "missing_credentials": "Nejsou k dispozici žádné Application Credentials.",
+      "authorize_url_timeout": "Vypršel časový limit při generování autorizační URL.",
+      "no_url_available": "Pro přesměrování OAuth není k dispozici žádná URL. Nápovědu najdete v dokumentaci.",
+      "user_rejected_authorize": "Autorizace byla zrušena.",
+      "cannot_connect": "Nepodařilo se připojit k PageCrawl ani načíst váš účet. Zkontrolujte připojení a zkuste to znovu.",
+      "no_workspaces": "Na vašem účtu PageCrawl nebyly nalezeny žádné pracovní prostory.",
+      "unknown_workspace": "Vybraný pracovní prostor nebyl nalezen.",
+      "wrong_account": "Přihlášený účet PageCrawl neodpovídá pracovnímu prostoru, který se znovu ověřuje.",
+      "reauth_successful": "Opětovné připojení k PageCrawl proběhlo úspěšně."
+    },
+    "create_entry": {
+      "default": "Připojení k PageCrawl proběhlo úspěšně."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Možnosti PageCrawl",
+        "description": "Zvolte, jak má tento pracovní prostor přijímat aktualizace. Push doručuje změny ve chvíli, kdy je PageCrawl zjistí, ale vyžaduje URL, na kterou se PageCrawl dostane (předplatné Home Assistant Cloud funguje automaticky). Dotazování kontroluje pouze podle plánu a funguje i na čistě lokálních instalacích.",
+        "data": {
+          "update_mode": "Režim aktualizací",
+          "scan_interval": "Interval dotazování (sekundy)",
+          "folder": "Filtr složek",
+          "tags": "Filtr štítků"
+        },
+        "data_description": {
+          "update_mode": "Auto zapne push, pokud je k dispozici dostupná URL, jinak dotazuje. Push a dotazování vynutí push s pomalým srovnávacím dotazováním. Pouze dotazování nikdy nezaregistruje webhook.",
+          "scan_interval": "Jak často dotazovat, v sekundách. Minimum 60. Při zapnutém push jde pouze o pomalou srovnávací smyčku.",
+          "folder": "Omezit tento pracovní prostor na jedinou složku PageCrawl podle jejího slug. Ponechte prázdné pro všechny složky.",
+          "tags": "Omezit na monitory s těmito štítky, oddělené čárkou. Ponechte prázdné pro všechny monitory."
+        }
+      }
+    }
+  },
+  "selector": {
+    "update_mode": {
+      "options": {
+        "auto": "Auto (push, je-li k dispozici, jinak dotazování)",
+        "push": "Push a dotazování",
+        "poll": "Pouze dotazování"
+      }
+    }
+  },
+  "application_credentials": {
+    "description": "PageCrawl používá vestavěné přihlašovací údaje, takže zde nemusíte nic přidávat."
+  },
+  "services": {
+    "check_now": {
+      "name": "Zkontrolovat nyní",
+      "description": "Spustí okamžitou kontrolu jednoho nebo více monitorů PageCrawl a poté obnoví jejich entity.",
+      "fields": {
+        "entity_id": {
+          "name": "Entity",
+          "description": "Entity patřící k monitorům, které se mají zkontrolovat."
+        },
+        "device_id": {
+          "name": "Zařízení",
+          "description": "Zařízení monitorů, která se mají zkontrolovat."
+        }
+      }
+    },
+    "track_page": {
+      "name": "Sledovat novou stránku",
+      "description": "Vytvoří nový monitor v PageCrawl. Úpravy a odstraňování monitorů se provádí ve webové aplikaci PageCrawl.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "Webová adresa, kterou chcete začít sledovat."
+        },
+        "name": {
+          "name": "Název",
+          "description": "Srozumitelný název monitoru. Výchozí hodnotou je titulek stránky."
+        },
+        "tracking_mode": {
+          "name": "Režim sledování",
+          "description": "Co na stránce sledovat. Ponechte prázdné pro sledování celé stránky."
+        },
+        "selector": {
+          "name": "CSS selektor",
+          "description": "Pro sledování textu nebo čísla CSS selektor prvku, který chcete sledovat."
+        },
+        "prompt": {
+          "name": "Pokyn pro AI",
+          "description": "Pro sledování pomocí AI extrakce pokyn popisující, co se má ze stránky získat."
+        },
+        "frequency": {
+          "name": "Frekvence",
+          "description": "Jak často PageCrawl stránku znovu kontroluje."
+        },
+        "entry_id": {
+          "name": "Pracovní prostor (pokročilé)",
+          "description": "Pracovní prostor, ve kterém se má monitor vytvořit. Potřebné pouze tehdy, je-li nastaveno více pracovních prostorů PageCrawl."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Stav"
+      },
+      "last_checked": {
+        "name": "Naposledy zkontrolováno"
+      },
+      "change_percent": {
+        "name": "Procento změny"
+      }
+    },
+    "button": {
+      "check_now": {
+        "name": "Zkontrolovat nyní"
+      }
+    }
+  },
+  "issues": {
+    "push_unavailable": {
+      "title": "Push aktualizace PageCrawl nejsou k dispozici",
+      "description": "PageCrawl nemohl zaregistrovat push aktualizace pro {workspace}, protože není k dispozici žádná externě dostupná URL. Tento pracovní prostor nyní používá dotazování. Chcete-li povolit okamžité aktualizace, připojte Home Assistant Cloud nebo zpřístupněte dostupnou URL a poté integraci znovu načtěte."
+    }
+  }
+}

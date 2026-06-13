@@ -1,0 +1,90 @@
+# PageCrawl integration services.
+
+check_now:
+  name: Check now
+  description: >-
+    Trigger an immediate check of one or more PageCrawl monitors, then refresh
+    their entities. Target any sensor, binary sensor, or button that belongs to
+    the monitor, or target the monitor device directly.
+  target:
+    entity:
+      integration: pagecrawl
+
+track_page:
+  name: Track a new page
+  description: >-
+    Create a new monitor in PageCrawl. The new monitor's device and entities
+    appear after the next refresh. Editing and removing monitors is done in the
+    PageCrawl web app.
+  fields:
+    url:
+      name: URL
+      description: The web address to start monitoring.
+      required: true
+      example: https://example.com/product/widget
+      selector:
+        text:
+    name:
+      name: Name
+      description: A friendly name for the monitor. Defaults to the page title.
+      required: false
+      example: Widget price
+      selector:
+        text:
+    tracking_mode:
+      name: Tracking mode
+      description: >-
+        What to track on the page. Leave empty to track the full page.
+      required: false
+      example: price
+      selector:
+        select:
+          mode: dropdown
+          custom_value: true
+          options:
+            - label: Full page
+              value: fullpage
+            - label: Content only (ignore menus and footers)
+              value: content_only
+            - label: Price
+              value: price
+            - label: Specific text
+              value: specific_text
+            - label: Specific number
+              value: specific_number
+            - label: AI extract
+              value: ai_extract
+    selector:
+      name: CSS selector
+      description: >-
+        For text or number tracking, the CSS selector of the element to watch.
+      required: false
+      example: ".product-price"
+      selector:
+        text:
+    prompt:
+      name: AI prompt
+      description: >-
+        For AI extract tracking, the instruction describing what to pull from
+        the page.
+      required: false
+      example: Extract the current ticket price in USD.
+      selector:
+        text:
+          multiline: true
+    frequency:
+      name: Frequency
+      description: How often PageCrawl rechecks the page.
+      required: false
+      example: daily
+      selector:
+        text:
+    entry_id:
+      name: Workspace (advanced)
+      description: >-
+        The config entry id of the workspace to create the monitor in. Only
+        needed when you have added more than one PageCrawl workspace.
+      required: false
+      selector:
+        config_entry:
+          integration: pagecrawl

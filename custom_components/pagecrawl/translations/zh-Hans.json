@@ -1,0 +1,147 @@
+{
+  "config": {
+    "step": {
+      "pick_implementation": {
+        "title": "选择验证方式"
+      },
+      "workspace": {
+        "title": "选择工作区",
+        "description": "您的 PageCrawl 账户可访问多个工作区。请选择要接入 Home Assistant 的工作区。如需添加其他工作区，请再次运行此设置。",
+        "data": {
+          "workspace_id": "工作区"
+        }
+      },
+      "reauth_confirm": {
+        "title": "重新通过 PageCrawl 验证",
+        "description": "您的 PageCrawl 访问权限已过期或被撤销。请重新登录以重新连接此工作区。"
+      }
+    },
+    "abort": {
+      "already_configured": "此工作区已设置。",
+      "already_in_progress": "设置已在进行中。",
+      "oauth_error": "登录 PageCrawl 时收到无效的响应。",
+      "oauth_failed": "无法从 PageCrawl 获取访问令牌。",
+      "oauth_timeout": "等待 PageCrawl 授权超时。",
+      "oauth_unauthorized": "PageCrawl 拒绝了授权请求。",
+      "missing_configuration": "尚未配置此集成。请先添加 Application Credential。",
+      "missing_credentials": "没有可用的应用凭据。",
+      "authorize_url_timeout": "生成授权 URL 超时。",
+      "no_url_available": "没有可用于 OAuth 重定向的 URL。请参阅文档以获取帮助。",
+      "user_rejected_authorize": "授权已取消。",
+      "cannot_connect": "无法连接 PageCrawl 或读取您的账户。请检查网络连接后重试。",
+      "no_workspaces": "在您的 PageCrawl 账户中未找到任何工作区。",
+      "unknown_workspace": "找不到所选的工作区。",
+      "wrong_account": "登录的 PageCrawl 账户与正在重新验证的工作区不匹配。",
+      "reauth_successful": "已成功重新连接到 PageCrawl。"
+    },
+    "create_entry": {
+      "default": "已成功连接到 PageCrawl。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "PageCrawl 选项",
+        "description": "选择此工作区接收更新的方式。推送会在 PageCrawl 检测到变更的那一刻立即送达，但需要一个 PageCrawl 可以访问的 URL（Home Assistant Cloud 订阅会自动满足此条件）。轮询仅按计划检查，适用于纯本地安装。",
+        "data": {
+          "update_mode": "更新模式",
+          "scan_interval": "轮询间隔（秒）",
+          "folder": "文件夹筛选",
+          "tags": "标签筛选"
+        },
+        "data_description": {
+          "update_mode": "“自动”会在有可访问的 URL 时启用推送，否则进行轮询。“推送和轮询”会强制使用推送，并辅以低频的对账轮询。“仅轮询”不会注册 webhook。",
+          "scan_interval": "轮询频率（秒）。最小为 60。启用推送后，这仅作为低频的对账循环。",
+          "folder": "通过 slug 将此工作区限定到单个 PageCrawl 文件夹。留空表示所有文件夹。",
+          "tags": "限定为带有这些标签的监控项，以英文逗号分隔。留空表示所有监控项。"
+        }
+      }
+    }
+  },
+  "selector": {
+    "update_mode": {
+      "options": {
+        "auto": "自动（可用时推送，否则轮询）",
+        "push": "推送和轮询",
+        "poll": "仅轮询"
+      }
+    }
+  },
+  "application_credentials": {
+    "description": "PageCrawl 使用内置凭据，因此您无需在此添加任何内容。"
+  },
+  "services": {
+    "check_now": {
+      "name": "立即检查",
+      "description": "立即触发对一个或多个 PageCrawl 监控项的检查，然后刷新其实体。",
+      "fields": {
+        "entity_id": {
+          "name": "实体",
+          "description": "要检查的监控项所属的实体。"
+        },
+        "device_id": {
+          "name": "设备",
+          "description": "要检查的监控设备。"
+        }
+      }
+    },
+    "track_page": {
+      "name": "跟踪新页面",
+      "description": "在 PageCrawl 中创建新的监控项。编辑和删除监控项需在 PageCrawl 网页应用中完成。",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "要开始监控的网址。"
+        },
+        "name": {
+          "name": "名称",
+          "description": "监控项的友好名称。默认为页面标题。"
+        },
+        "tracking_mode": {
+          "name": "跟踪模式",
+          "description": "要在页面上跟踪的内容。留空则跟踪整个页面。"
+        },
+        "selector": {
+          "name": "CSS 选择器",
+          "description": "用于文本或数字跟踪时，指定要监视的元素的 CSS 选择器。"
+        },
+        "prompt": {
+          "name": "AI 提示词",
+          "description": "用于 AI 提取跟踪时，描述要从页面中提取内容的指令。"
+        },
+        "frequency": {
+          "name": "频率",
+          "description": "PageCrawl 重新检查页面的频率。"
+        },
+        "entry_id": {
+          "name": "工作区（高级）",
+          "description": "用于创建监控项的工作区。仅在设置了多个 PageCrawl 工作区时需要。"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "状态"
+      },
+      "last_checked": {
+        "name": "上次检查"
+      },
+      "change_percent": {
+        "name": "变更百分比"
+      }
+    },
+    "button": {
+      "check_now": {
+        "name": "立即检查"
+      }
+    }
+  },
+  "issues": {
+    "push_unavailable": {
+      "title": "PageCrawl 推送更新不可用",
+      "description": "PageCrawl 无法为 {workspace} 注册推送更新，因为没有可供外部访问的 URL。此工作区现已改用轮询。要启用即时更新，请连接 Home Assistant Cloud 或公开一个可访问的 URL，然后重新加载该集成。"
+    }
+  }
+}

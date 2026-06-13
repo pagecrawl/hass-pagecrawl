@@ -1,0 +1,147 @@
+{
+  "config": {
+    "step": {
+      "pick_implementation": {
+        "title": "Authentifizierungsmethode auswählen"
+      },
+      "workspace": {
+        "title": "Workspace auswählen",
+        "description": "Dein PageCrawl-Konto hat Zugriff auf mehrere Workspaces. Wähle den aus, der in Home Assistant eingebunden werden soll. Um einen weiteren Workspace hinzuzufügen, führe diese Einrichtung erneut aus.",
+        "data": {
+          "workspace_id": "Workspace"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Erneut bei PageCrawl anmelden",
+        "description": "Dein PageCrawl-Zugriff ist abgelaufen oder wurde widerrufen. Melde dich erneut an, um diesen Workspace wieder zu verbinden."
+      }
+    },
+    "abort": {
+      "already_configured": "Dieser Workspace ist bereits eingerichtet.",
+      "already_in_progress": "Die Einrichtung läuft bereits.",
+      "oauth_error": "Bei der Anmeldung bei PageCrawl wurde eine ungültige Antwort empfangen.",
+      "oauth_failed": "Es konnte kein Zugriffstoken von PageCrawl abgerufen werden.",
+      "oauth_timeout": "Zeitüberschreitung beim Warten auf die PageCrawl-Autorisierung.",
+      "oauth_unauthorized": "PageCrawl hat die Autorisierungsanfrage abgelehnt.",
+      "missing_configuration": "Die Integration ist nicht konfiguriert. Füge zuerst eine Application Credential hinzu.",
+      "missing_credentials": "Es sind keine Application Credentials verfügbar.",
+      "authorize_url_timeout": "Zeitüberschreitung beim Erstellen der Autorisierungs-URL.",
+      "no_url_available": "Für den OAuth-Redirect ist keine URL verfügbar. Hilfe findest du in der Dokumentation.",
+      "user_rejected_authorize": "Die Autorisierung wurde abgebrochen.",
+      "cannot_connect": "PageCrawl konnte nicht erreicht oder dein Konto nicht gelesen werden. Überprüfe deine Verbindung und versuche es erneut.",
+      "no_workspaces": "In deinem PageCrawl-Konto wurden keine Workspaces gefunden.",
+      "unknown_workspace": "Der ausgewählte Workspace konnte nicht gefunden werden.",
+      "wrong_account": "Das angemeldete PageCrawl-Konto stimmt nicht mit dem Workspace überein, der erneut authentifiziert wird.",
+      "reauth_successful": "Erfolgreich wieder mit PageCrawl verbunden."
+    },
+    "create_entry": {
+      "default": "Erfolgreich mit PageCrawl verbunden."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "PageCrawl-Optionen",
+        "description": "Lege fest, wie dieser Workspace Aktualisierungen erhält. Push liefert Änderungen sofort, sobald PageCrawl sie erkennt, benötigt aber eine URL, die PageCrawl erreichen kann (mit einem Home Assistant Cloud-Abonnement funktioniert das automatisch). Abruf prüft nur nach einem Zeitplan und funktioniert auch bei rein lokalen Installationen.",
+        "data": {
+          "update_mode": "Aktualisierungsmodus",
+          "scan_interval": "Abrufintervall (Sekunden)",
+          "folder": "Ordnerfilter",
+          "tags": "Tag-Filter"
+        },
+        "data_description": {
+          "update_mode": "Automatisch aktiviert Push, wenn eine erreichbare URL verfügbar ist, und ruft andernfalls ab. Push und Abruf erzwingt Push mit einem langsamen Abgleichsabruf. Nur Abruf registriert nie einen Webhook.",
+          "scan_interval": "Wie oft abgerufen wird, in Sekunden. Mindestens 60. Bei aktiviertem Push ist dies nur eine langsame Abgleichsschleife.",
+          "folder": "Beschränke diesen Workspace auf einen einzelnen PageCrawl-Ordner anhand seines Slugs. Leer lassen für alle Ordner.",
+          "tags": "Auf Monitore mit diesen Tags beschränken, durch Kommas getrennt. Leer lassen für alle Monitore."
+        }
+      }
+    }
+  },
+  "selector": {
+    "update_mode": {
+      "options": {
+        "auto": "Automatisch (Push, wenn verfügbar, andernfalls Abruf)",
+        "push": "Push und Abruf",
+        "poll": "Nur Abruf"
+      }
+    }
+  },
+  "application_credentials": {
+    "description": "PageCrawl verwendet integrierte Anmeldedaten, daher müssen Sie hier nichts hinzufügen."
+  },
+  "services": {
+    "check_now": {
+      "name": "Jetzt prüfen",
+      "description": "Löst eine sofortige Prüfung eines oder mehrerer PageCrawl-Monitore aus und aktualisiert anschließend deren Entitäten.",
+      "fields": {
+        "entity_id": {
+          "name": "Entitäten",
+          "description": "Entitäten der zu prüfenden Monitore."
+        },
+        "device_id": {
+          "name": "Geräte",
+          "description": "Zu prüfende Monitor-Geräte."
+        }
+      }
+    },
+    "track_page": {
+      "name": "Neue Seite verfolgen",
+      "description": "Erstellt einen neuen Monitor in PageCrawl. Das Bearbeiten und Entfernen von Monitoren erfolgt in der PageCrawl-Web-App.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "Die Webadresse, die überwacht werden soll."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Ein sprechender Name für den Monitor. Standardmäßig der Seitentitel."
+        },
+        "tracking_mode": {
+          "name": "Verfolgungsmodus",
+          "description": "Was auf der Seite verfolgt werden soll. Leer lassen, um die gesamte Seite zu verfolgen."
+        },
+        "selector": {
+          "name": "CSS-Selektor",
+          "description": "Für die Text- oder Zahlenverfolgung der CSS-Selektor des zu beobachtenden Elements."
+        },
+        "prompt": {
+          "name": "AI-Prompt",
+          "description": "Für die AI-Extraktion die Anweisung, die beschreibt, was von der Seite gelesen werden soll."
+        },
+        "frequency": {
+          "name": "Häufigkeit",
+          "description": "Wie oft PageCrawl die Seite erneut prüft."
+        },
+        "entry_id": {
+          "name": "Workspace (erweitert)",
+          "description": "Der Workspace, in dem der Monitor erstellt wird. Nur erforderlich, wenn mehr als ein PageCrawl-Workspace eingerichtet ist."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "last_checked": {
+        "name": "Zuletzt geprüft"
+      },
+      "change_percent": {
+        "name": "Änderung in Prozent"
+      }
+    },
+    "button": {
+      "check_now": {
+        "name": "Jetzt prüfen"
+      }
+    }
+  },
+  "issues": {
+    "push_unavailable": {
+      "title": "PageCrawl-Push-Aktualisierungen nicht verfügbar",
+      "description": "PageCrawl konnte keine Push-Aktualisierungen für {workspace} registrieren, da keine extern erreichbare URL verfügbar ist. Dieser Workspace verwendet jetzt den Abruf. Um sofortige Aktualisierungen zu aktivieren, verbinde Home Assistant Cloud oder stelle eine erreichbare URL bereit und lade die Integration anschließend neu."
+    }
+  }
+}

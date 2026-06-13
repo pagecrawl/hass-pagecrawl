@@ -1,0 +1,40 @@
+{
+  "entity": {
+    "sensor": {
+      "primary": {
+        "default": "mdi:text-box-search"
+      },
+      "status": {
+        "default": "mdi:check-network-outline"
+      },
+      "change_percent": {
+        "default": "mdi:percent-outline"
+      }
+    },
+    "binary_sensor": {
+      "availability": {
+        "default": "mdi:package-variant-closed",
+        "state": {
+          "on": "mdi:package-variant-closed-check",
+          "off": "mdi:package-variant-closed-remove"
+        }
+      },
+      "boolean": {
+        "default": "mdi:toggle-switch-variant"
+      }
+    },
+    "button": {
+      "check_now": {
+        "default": "mdi:refresh"
+      }
+    }
+  },
+  "services": {
+    "check_now": {
+      "service": "mdi:refresh"
+    },
+    "track_page": {
+      "service": "mdi:plus-box-outline"
+    }
+  }
+}

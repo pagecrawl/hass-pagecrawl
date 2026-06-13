@@ -1,0 +1,147 @@
+{
+  "config": {
+    "step": {
+      "pick_implementation": {
+        "title": "Kies een authenticatiemethode"
+      },
+      "workspace": {
+        "title": "Kies een workspace",
+        "description": "Je PageCrawl-account heeft toegang tot meerdere workspaces. Kies degene die je in Home Assistant wilt gebruiken. Voer deze setup opnieuw uit om nog een workspace toe te voegen.",
+        "data": {
+          "workspace_id": "Workspace"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Opnieuw verifiëren met PageCrawl",
+        "description": "Je PageCrawl-toegang is verlopen of ingetrokken. Meld je opnieuw aan om deze workspace opnieuw te verbinden."
+      }
+    },
+    "abort": {
+      "already_configured": "Deze workspace is al ingesteld.",
+      "already_in_progress": "De setup is al bezig.",
+      "oauth_error": "Er is een ongeldig antwoord ontvangen tijdens het aanmelden bij PageCrawl.",
+      "oauth_failed": "Kon geen toegangstoken ophalen van PageCrawl.",
+      "oauth_timeout": "Time-out tijdens het wachten op de autorisatie van PageCrawl.",
+      "oauth_unauthorized": "PageCrawl heeft het autorisatieverzoek afgewezen.",
+      "missing_configuration": "De integratie is niet geconfigureerd. Voeg eerst een Application Credential toe.",
+      "missing_credentials": "Er zijn geen application credentials beschikbaar.",
+      "authorize_url_timeout": "Time-out tijdens het genereren van de autorisatie-URL.",
+      "no_url_available": "Er is geen URL beschikbaar voor de OAuth-redirect. Raadpleeg de documentatie voor hulp.",
+      "user_rejected_authorize": "De autorisatie is geannuleerd.",
+      "cannot_connect": "Kon PageCrawl niet bereiken of je account niet uitlezen. Controleer je verbinding en probeer het opnieuw.",
+      "no_workspaces": "Er zijn geen workspaces gevonden op je PageCrawl-account.",
+      "unknown_workspace": "De geselecteerde workspace kon niet worden gevonden.",
+      "wrong_account": "Het aangemelde PageCrawl-account komt niet overeen met de workspace die opnieuw wordt geverifieerd.",
+      "reauth_successful": "Opnieuw verbonden met PageCrawl."
+    },
+    "create_entry": {
+      "default": "Verbonden met PageCrawl."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "PageCrawl-opties",
+        "description": "Kies hoe deze workspace updates ontvangt. Push levert wijzigingen op het moment dat PageCrawl ze detecteert, maar heeft een URL nodig die PageCrawl kan bereiken (een abonnement op Home Assistant Cloud werkt automatisch). Pollen controleert alleen volgens een schema en werkt op installaties die enkel lokaal bereikbaar zijn.",
+        "data": {
+          "update_mode": "Updatemodus",
+          "scan_interval": "Pollinterval (seconden)",
+          "folder": "Mapfilter",
+          "tags": "Tagfilter"
+        },
+        "data_description": {
+          "update_mode": "Auto schakelt push in wanneer een bereikbare URL beschikbaar is en polt anders. Push en poll dwingt push af met een trage afstemmingspoll. Alleen pollen registreert nooit een webhook.",
+          "scan_interval": "Hoe vaak er gepolld wordt, in seconden. Minimaal 60. Met push ingeschakeld is dit alleen een trage afstemmingslus.",
+          "folder": "Beperk deze workspace tot één PageCrawl-map op basis van de slug. Laat leeg voor alle mappen.",
+          "tags": "Beperk tot monitors met deze tags, gescheiden door komma's. Laat leeg voor alle monitors."
+        }
+      }
+    }
+  },
+  "selector": {
+    "update_mode": {
+      "options": {
+        "auto": "Auto (push indien beschikbaar, anders pollen)",
+        "push": "Push en poll",
+        "poll": "Alleen pollen"
+      }
+    }
+  },
+  "application_credentials": {
+    "description": "PageCrawl gebruikt ingebouwde inloggegevens, dus je hoeft hier niets toe te voegen."
+  },
+  "services": {
+    "check_now": {
+      "name": "Nu controleren",
+      "description": "Voer onmiddellijk een controle uit van een of meer PageCrawl-monitors en vernieuw daarna hun entiteiten.",
+      "fields": {
+        "entity_id": {
+          "name": "Entiteiten",
+          "description": "Entiteiten die bij de te controleren monitors horen."
+        },
+        "device_id": {
+          "name": "Apparaten",
+          "description": "Monitorapparaten die gecontroleerd moeten worden."
+        }
+      }
+    },
+    "track_page": {
+      "name": "Een nieuwe pagina volgen",
+      "description": "Maak een nieuwe monitor aan in PageCrawl. Monitors bewerken en verwijderen doe je in de PageCrawl-webapp.",
+      "fields": {
+        "url": {
+          "name": "URL",
+          "description": "Het webadres dat je wilt gaan volgen."
+        },
+        "name": {
+          "name": "Naam",
+          "description": "Een herkenbare naam voor de monitor. Standaard de paginatitel."
+        },
+        "tracking_mode": {
+          "name": "Volgmodus",
+          "description": "Wat er op de pagina gevolgd moet worden. Laat leeg om de volledige pagina te volgen."
+        },
+        "selector": {
+          "name": "CSS-selector",
+          "description": "De CSS-selector van het te volgen element, voor tekst- of cijfervolging."
+        },
+        "prompt": {
+          "name": "AI-prompt",
+          "description": "De instructie die beschrijft wat er van de pagina gehaald moet worden, voor AI-extractievolging."
+        },
+        "frequency": {
+          "name": "Frequentie",
+          "description": "Hoe vaak PageCrawl de pagina opnieuw controleert."
+        },
+        "entry_id": {
+          "name": "Workspace (geavanceerd)",
+          "description": "De workspace waarin de monitor wordt aangemaakt. Alleen nodig wanneer er meerdere PageCrawl-workspaces zijn ingesteld."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "last_checked": {
+        "name": "Laatst gecontroleerd"
+      },
+      "change_percent": {
+        "name": "Wijzigingspercentage"
+      }
+    },
+    "button": {
+      "check_now": {
+        "name": "Nu controleren"
+      }
+    }
+  },
+  "issues": {
+    "push_unavailable": {
+      "title": "PageCrawl push-updates niet beschikbaar",
+      "description": "PageCrawl kon geen push-updates registreren voor {workspace} omdat er geen extern bereikbare URL beschikbaar is. Deze workspace gebruikt nu pollen. Verbind Home Assistant Cloud of stel een bereikbare URL beschikbaar en herlaad daarna de integratie om directe updates in te schakelen."
+    }
+  }
+}
