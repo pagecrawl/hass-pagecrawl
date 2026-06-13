@@ -341,20 +341,26 @@ action:
       entity_id: tts.home_assistant_cloud
 ```
 
-**Charge the car when power is cheap.** Your dynamic energy tariff is a JavaScript dashboard
-that Home Assistant cannot scrape on its own. PageCrawl reads the live price as a number sensor,
-so you can let the house act on a value it otherwise could not see:
+**Set the mood when the aurora might be visible.** An aurora forecast is a JavaScript dashboard
+that Home Assistant cannot scrape on its own. PageCrawl reads the live Kp index as a number
+sensor, so the house can react to a value it otherwise could not see:
 
 ```yaml
-alias: Charge EV on cheap power
+alias: Aurora alert
 trigger:
   - platform: numeric_state
-    entity_id: sensor.grid_price_per_kwh
-    below: 0.12
+    entity_id: sensor.aurora_forecast_kp_index
+    above: 5
 action:
-  - service: switch.turn_on
+  - service: light.turn_on
     target:
-      entity_id: switch.ev_charger
+      entity_id: light.bedroom
+    data:
+      rgb_color: [80, 255, 120]
+  - service: notify.notify
+    data:
+      message: >-
+        Aurora likely tonight (Kp {{ states('sensor.aurora_forecast_kp_index') }}). Look up!
 ```
 
 **Notify when an appointment slot opens.** PageCrawl monitors a login-gated booking page and
