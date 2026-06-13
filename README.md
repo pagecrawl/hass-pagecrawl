@@ -63,8 +63,7 @@ selector fixes.
 - A choice of what to import (everything, selected folders, or selected monitors), and
   support for multiple workspaces.
 
-It works for **free PageCrawl accounts**. You sign in with OAuth and click Authorize. There
-is no API token to create or paste.
+It works for **free PageCrawl accounts**. You sign in with OAuth and click Authorize.
 
 ## Installation
 
