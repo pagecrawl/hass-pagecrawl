@@ -170,8 +170,8 @@ Each monitor becomes a device. Each tracked element becomes one entity, chosen b
 | `text`, `fullpage`, `html`, `ai_extract`, `json_path`, `seo` | sensor | text, truncated to 255 characters (full value in the `full_value` attribute) |
 | `links`, `feed`, `leaderboard`, `text_multiple` | sensor | item count (items in the `items` attribute) |
 
-Every monitor also gets diagnostic entities (status, last checked, change percent) so the
-device is never empty, even if its element types are unknown. Common attributes such as the
+Every monitor also gets diagnostic entities (status, last checked, last change date, change
+percent) so the device is never empty, even if its element types are unknown. Common attributes such as the
 URL, status, change percent, and diff and screenshot links are exposed on the primary
 sensor.
 
@@ -247,6 +247,90 @@ action:
 
 Event data includes `monitor_id`, `name`, `url`, `slug`, `contents`, `difference`,
 `human_difference`, `diff_url`, and `changed_at`.
+
+### More examples
+
+**Notify with the AI summary when a change is detected.** Use the per-monitor AI summary sensor
+in the message:
+
+```yaml
+alias: PageCrawl change with AI summary
+trigger:
+  - platform: event
+    event_type: pagecrawl_change
+action:
+  - service: notify.mobile_app_phone
+    data:
+      title: "Changed: {{ trigger.event.data.name }}"
+      message: "{{ state_attr('sensor.competitor_pricing_ai_summary', 'full_value') }}"
+```
+
+**Alert when a tracked price drops below your target.** Point this at a price sensor:
+
+```yaml
+alias: Price drop alert
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.acme_widget_price
+    below: 50
+action:
+  - service: notify.notify
+    data:
+      message: >-
+        Acme Widget is now {{ states('sensor.acme_widget_price') }}
+        {{ state_attr('sensor.acme_widget_price', 'unit_of_measurement') }}.
+```
+
+**Turn on a light when an out-of-stock item is back.** Availability monitors are binary sensors:
+
+```yaml
+alias: Back in stock
+trigger:
+  - platform: state
+    entity_id: binary_sensor.ps5_availability
+    from: "off"
+    to: "on"
+action:
+  - service: light.turn_on
+    target:
+      entity_id: light.office
+  - service: notify.notify
+    data:
+      message: "PS5 is back in stock!"
+```
+
+**Re-check a monitor on a schedule** with the `check_now` action:
+
+```yaml
+alias: Hourly recheck of the status page
+trigger:
+  - platform: time_pattern
+    minutes: "0"
+action:
+  - service: pagecrawl.check_now
+    target:
+      device_id: 1a2b3c4d5e6f7g8h9i0j
+```
+
+**Only notify on high-priority changes** using the AI priority sensor:
+
+```yaml
+alias: High-priority PageCrawl changes only
+trigger:
+  - platform: event
+    event_type: pagecrawl_change
+condition:
+  - condition: numeric_state
+    entity_id: sensor.terms_of_service_ai_priority
+    above: 70
+action:
+  - service: notify.notify
+    data:
+      title: "Important change: {{ trigger.event.data.name }}"
+      message: "{{ trigger.event.data.human_difference }} {{ trigger.event.data.diff_url }}"
+```
+
+Replace the example entity ids with your own (Home Assistant builds them from the monitor name).
 
 ## What is not supported yet
 

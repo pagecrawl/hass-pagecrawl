@@ -512,6 +512,18 @@ def _last_checked_value(monitor: dict[str, Any]) -> datetime | None:
     return parsed
 
 
+def _last_changed_value(monitor: dict[str, Any]) -> datetime | None:
+    raw = (monitor.get("latest") or {}).get("changed_at")
+    if not raw:
+        return None
+    parsed = dt_util.parse_datetime(str(raw))
+    if parsed is None:
+        return None
+    if parsed.tzinfo is None:
+        parsed = dt_util.as_utc(parsed)
+    return parsed
+
+
 def _change_percent_value(monitor: dict[str, Any]) -> float | None:
     return _parse_float((monitor.get("latest") or {}).get("difference"))
 
@@ -528,6 +540,13 @@ _DIAGNOSTIC_DESCRIPTIONS: list[dict[str, Any]] = [
         "name": "Last checked",
         "device_class": SensorDeviceClass.TIMESTAMP,
         "value_fn": _last_checked_value,
+    },
+    {
+        "key": "last_changed",
+        "name": "Last change date",
+        "icon": "mdi:calendar-clock",
+        "device_class": SensorDeviceClass.TIMESTAMP,
+        "value_fn": _last_changed_value,
     },
     {
         "key": "change_percent",

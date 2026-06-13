@@ -143,7 +143,7 @@ async def test_links_count_sensor(hass, setup_integration, mock_config_entry):
 async def test_diagnostic_sensors(hass, setup_integration, mock_config_entry):
     """Status / last_checked / change_percent diagnostic sensors exist."""
     ent_reg = er.async_get(hass)
-    for key in ("status", "last_checked", "change_percent"):
+    for key in ("status", "last_checked", "last_changed", "change_percent"):
         eid = ent_reg.async_get_entity_id(
             "sensor",
             DOMAIN,
@@ -345,6 +345,22 @@ async def test_last_checked_is_timestamp(
     state = hass.states.get(eid)
     assert state.attributes["device_class"] == SensorDeviceClass.TIMESTAMP
     # Value parses as an ISO datetime.
+    assert state.state.startswith("2026-06-13T10:00:00")
+
+
+async def test_last_changed_is_timestamp(
+    hass, setup_integration, mock_config_entry
+):
+    """The last_changed diagnostic reflects latest.changed_at as a timestamp."""
+    ent_reg = er.async_get(hass)
+    eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_1001_diag_last_changed"
+    )
+    assert eid is not None
+    from homeassistant.components.sensor import SensorDeviceClass
+
+    state = hass.states.get(eid)
+    assert state.attributes["device_class"] == SensorDeviceClass.TIMESTAMP
     assert state.state.startswith("2026-06-13T10:00:00")
 
 
