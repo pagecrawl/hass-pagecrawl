@@ -51,10 +51,6 @@ A good rule of thumb: if a `scrape` sensor already returns the value you need, k
 Bring in PageCrawl for the pages where it comes back empty, gets blocked, or needs constant
 selector fixes.
 
-This is a custom integration (a HACS-installable custom component), not an add-on. Sensors
-in Home Assistant can only be created by an integration, so this works on every install
-type: Core, Container, OS, and Supervised.
-
 ## What you get
 
 - One Home Assistant device per monitor.
