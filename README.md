@@ -103,16 +103,12 @@ Then select **Download**, and **restart Home Assistant**.
 
 1. Click the button above, or go to **Settings > Devices & Services > Add Integration** and
    search for **PageCrawl**.
-2. You are redirected to PageCrawl to sign in and authorize Home Assistant. This is a
-   one-click PKCE OAuth flow: there is no API token to create or paste, and a free account
-   is enough. The integration uses a built-in public OAuth client, so nothing is configured
-   by hand on pagecrawl.io.
+2. You are taken to PageCrawl to sign in and approve access for Home Assistant. A free account
+   is enough, and there is nothing to set up by hand: no API token, no keys, no Application
+   Credentials.
 3. If your account has more than one workspace, pick the one to add. To add another
    workspace later, run **Add Integration** again and pick a different workspace. Each
    workspace becomes its own entry with its own devices and entities.
-
-The OAuth client is built in, so there is nothing to configure by hand: no API token, no
-client ID or secret, and no Application Credentials to add.
 
 ## What this integration can and cannot do
 
