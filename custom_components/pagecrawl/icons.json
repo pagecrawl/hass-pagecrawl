@@ -9,6 +9,15 @@
       },
       "change_percent": {
         "default": "mdi:percent-outline"
+      },
+      "ai_summary": {
+        "default": "mdi:robot"
+      },
+      "ai_priority": {
+        "default": "mdi:flag"
+      },
+      "last_change": {
+        "default": "mdi:history"
       }
     },
     "binary_sensor": {

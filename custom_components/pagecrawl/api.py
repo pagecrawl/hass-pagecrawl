@@ -161,6 +161,21 @@ class PageCrawlClient:
             raise PageCrawlApiError("Unexpected /api/pages response shape")
         return data
 
+    async def async_list_folders(
+        self,
+        workspace_id: int | str | None = None,
+    ) -> list[dict[str, Any]]:
+        """GET /api/folders -> list of {id, name, slug} folder dicts."""
+        params = self._params()
+        if workspace_id is not None:
+            params["workspace_id"] = workspace_id
+        data = await self._request("GET", "/api/folders", params=params)
+        if isinstance(data, dict) and "data" in data:
+            data = data["data"]
+        if not isinstance(data, list):
+            raise PageCrawlApiError("Unexpected /api/folders response shape")
+        return data
+
     async def async_check_now(self, page_id: int | str) -> Any:
         """PUT /api/pages/{id}/check -> trigger an immediate check."""
         return await self._request(

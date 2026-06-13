@@ -127,15 +127,36 @@ async def test_full_flow_multi_workspace(
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "workspace"
 
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_WORKSPACE_ID: str(WORKSPACE_ID)}
-    )
+    with (
+        patch(
+            "custom_components.pagecrawl.config_flow.PageCrawlClient."
+            "async_list_folders",
+            AsyncMock(return_value=[]),
+        ),
+        patch(
+            "custom_components.pagecrawl.config_flow.PageCrawlClient."
+            "async_list_pages",
+            AsyncMock(return_value=[]),
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_WORKSPACE_ID: str(WORKSPACE_ID)}
+        )
+
+        # Import-scope chooser step.
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "import_options"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"import_mode": "all"}
+        )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == "Acme Workspace"
     assert result["result"].unique_id == f"{USER_ID}:{WORKSPACE_ID}"
     assert result["data"][CONF_WORKSPACE_ID] == WORKSPACE_ID
     assert "token" in result["data"]
+    assert result["options"]["import_mode"] == "all"
 
 
 async def test_single_workspace_auto_pick(
@@ -151,13 +172,33 @@ async def test_single_workspace_auto_pick(
         hass, hass_client_no_auth, aioclient_mock, current_request_with_host
     )
 
-    with patch(
-        "custom_components.pagecrawl.config_flow.PageCrawlClient."
-        "async_get_user",
-        AsyncMock(return_value=user_payload_single),
+    with (
+        patch(
+            "custom_components.pagecrawl.config_flow.PageCrawlClient."
+            "async_get_user",
+            AsyncMock(return_value=user_payload_single),
+        ),
+        patch(
+            "custom_components.pagecrawl.config_flow.PageCrawlClient."
+            "async_list_folders",
+            AsyncMock(return_value=[]),
+        ),
+        patch(
+            "custom_components.pagecrawl.config_flow.PageCrawlClient."
+            "async_list_pages",
+            AsyncMock(return_value=[]),
+        ),
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"]
+        )
+
+        # Single workspace auto-picked -> import-scope chooser step.
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "import_options"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"import_mode": "all"}
         )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY

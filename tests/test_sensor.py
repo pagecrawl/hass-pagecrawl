@@ -326,7 +326,7 @@ async def test_primary_sensor_attributes(
     assert state.attributes["url"] == "https://example.com/widget"
     assert state.attributes["status"] == "ok"
     assert state.attributes["diff_url"] == (
-        "https://pagecrawl.io/changes/acme-widget"
+        "https://pagecrawl.io/app/pages/acme-widget"
     )
 
 
@@ -460,6 +460,251 @@ async def test_track_page_error_raises(
             {"entry_id": mock_config_entry.entry_id, "url": "https://x"},
             blocking=True,
         )
+
+
+async def test_ai_summary_sensor_poll_shape(
+    hass, setup_integration, mock_config_entry
+):
+    """AI summary sensor reads checks[0].ai_summary (poll path)."""
+    ent_reg = er.async_get(hass)
+    eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_1001_ai_summary"
+    )
+    assert eid is not None
+    state = hass.states.get(eid)
+    assert state.state == "The widget price dropped by 5 percent."
+    assert (
+        state.attributes["full_value"]
+        == "The widget price dropped by 5 percent."
+    )
+    assert state.attributes["truncated"] is False
+    assert state.attributes["ai_importance_tag"] == "price_drop"
+    assert state.attributes["is_noise"] is False
+
+
+async def test_ai_summary_sensor_truncates(
+    hass, setup_integration, mock_config_entry
+):
+    """A long AI summary is truncated to the state limit; full text in attr."""
+    from custom_components.pagecrawl.const import MAX_STATE_LENGTH
+
+    long_summary = "z" * 400
+    coordinator = mock_config_entry.runtime_data.coordinator
+    data = dict(coordinator.data)
+    monitor = dict(data[1001])
+    checks = [dict(monitor["checks"][0])]
+    checks[0]["ai_summary"] = long_summary
+    monitor["checks"] = checks
+    data[1001] = monitor
+    coordinator.async_set_updated_data(data)
+    await hass.async_block_till_done()
+
+    ent_reg = er.async_get(hass)
+    eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_1001_ai_summary"
+    )
+    state = hass.states.get(eid)
+    assert len(state.state) == MAX_STATE_LENGTH
+    assert state.state.endswith("…")
+    assert state.attributes["full_value"] == long_summary
+    assert state.attributes["truncated"] is True
+
+
+async def test_ai_summary_sensor_push_shape(
+    hass, setup_integration, mock_config_entry
+):
+    """AI summary sensor reads latest.ai_summary (push path) preferentially."""
+    coordinator = mock_config_entry.runtime_data.coordinator
+    data = dict(coordinator.data)
+    monitor = dict(data[1001])
+    latest = dict(monitor["latest"])
+    latest["ai_summary"] = "Pushed AI summary"
+    monitor["latest"] = latest
+    data[1001] = monitor
+    coordinator.async_set_updated_data(data)
+    await hass.async_block_till_done()
+
+    ent_reg = er.async_get(hass)
+    eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_1001_ai_summary"
+    )
+    state = hass.states.get(eid)
+    assert state.state == "Pushed AI summary"
+
+
+async def test_ai_priority_sensor_poll_shape(
+    hass, setup_integration, mock_config_entry
+):
+    """AI priority sensor reads checks[0].priority_score and is diagnostic."""
+    ent_reg = er.async_get(hass)
+    eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_1001_ai_priority"
+    )
+    assert eid is not None
+    entry = ent_reg.async_get(eid)
+    assert entry.entity_category == EntityCategory.DIAGNOSTIC
+    state = hass.states.get(eid)
+    assert state.state == "72.0"
+    assert state.attributes["state_class"] == "measurement"
+
+
+async def test_ai_priority_sensor_push_shape(
+    hass, setup_integration, mock_config_entry
+):
+    """AI priority sensor prefers latest.ai_priority_score (push path)."""
+    coordinator = mock_config_entry.runtime_data.coordinator
+    data = dict(coordinator.data)
+    monitor = dict(data[1001])
+    latest = dict(monitor["latest"])
+    latest["ai_priority_score"] = 91
+    monitor["latest"] = latest
+    data[1001] = monitor
+    coordinator.async_set_updated_data(data)
+    await hass.async_block_till_done()
+
+    ent_reg = er.async_get(hass)
+    eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_1001_ai_priority"
+    )
+    state = hass.states.get(eid)
+    assert state.state == "91.0"
+
+
+async def test_ai_sensors_absent_without_ai_data(
+    hass, mock_config_entry, no_ai_pages, mock_no_push
+):
+    """AI sensors are NOT created for a monitor with no AI data."""
+    client = _build_client(no_ai_pages)
+    mock_config_entry.add_to_hass(hass)
+    with patch(
+        "custom_components.pagecrawl.PageCrawlClient", return_value=client
+    ), patch(
+        "custom_components.pagecrawl.config_entry_oauth2_flow."
+        "async_get_config_entry_implementation",
+        AsyncMock(),
+    ), patch(
+        "custom_components.pagecrawl.config_entry_oauth2_flow.OAuth2Session",
+        MagicMock(),
+    ):
+        assert await hass.config_entries.async_setup(
+            mock_config_entry.entry_id
+        )
+        await hass.async_block_till_done()
+
+    ent_reg = er.async_get(hass)
+    assert (
+        ent_reg.async_get_entity_id(
+            "sensor", DOMAIN, f"{mock_config_entry.entry_id}_4004_ai_summary"
+        )
+        is None
+    )
+    assert (
+        ent_reg.async_get_entity_id(
+            "sensor", DOMAIN, f"{mock_config_entry.entry_id}_4004_ai_priority"
+        )
+        is None
+    )
+    # The last_change sensor is created for every monitor, AI or not.
+    assert (
+        ent_reg.async_get_entity_id(
+            "sensor", DOMAIN, f"{mock_config_entry.entry_id}_4004_last_change"
+        )
+        is not None
+    )
+
+
+async def test_ai_sensors_appear_dynamically(
+    hass, mock_config_entry, no_ai_pages, mock_no_push
+):
+    """AI sensors materialize once AI data shows up via async_set_updated_data."""
+    client = _build_client(no_ai_pages)
+    mock_config_entry.add_to_hass(hass)
+    with patch(
+        "custom_components.pagecrawl.PageCrawlClient", return_value=client
+    ), patch(
+        "custom_components.pagecrawl.config_entry_oauth2_flow."
+        "async_get_config_entry_implementation",
+        AsyncMock(),
+    ), patch(
+        "custom_components.pagecrawl.config_entry_oauth2_flow.OAuth2Session",
+        MagicMock(),
+    ):
+        assert await hass.config_entries.async_setup(
+            mock_config_entry.entry_id
+        )
+        await hass.async_block_till_done()
+
+    ent_reg = er.async_get(hass)
+    assert (
+        ent_reg.async_get_entity_id(
+            "sensor", DOMAIN, f"{mock_config_entry.entry_id}_4004_ai_summary"
+        )
+        is None
+    )
+
+    coordinator = mock_config_entry.runtime_data.coordinator
+    data = dict(coordinator.data)
+    monitor = dict(data[4004])
+    latest = dict(monitor["latest"])
+    latest["ai_summary"] = "Now there is AI data"
+    latest["ai_priority_score"] = 60
+    monitor["latest"] = latest
+    data[4004] = monitor
+    coordinator.async_set_updated_data(data)
+    await hass.async_block_till_done()
+
+    summary_eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_4004_ai_summary"
+    )
+    assert summary_eid is not None
+    assert hass.states.get(summary_eid).state == "Now there is AI data"
+    priority_eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_4004_ai_priority"
+    )
+    assert priority_eid is not None
+    assert hass.states.get(priority_eid).state == "60.0"
+
+
+async def test_last_change_sensor(hass, setup_integration, mock_config_entry):
+    """Last change sensor exposes latest.human_difference + metadata."""
+    ent_reg = er.async_get(hass)
+    eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_1001_last_change"
+    )
+    assert eid is not None
+    state = hass.states.get(eid)
+    assert state.state == "Price dropped 5%"
+    assert state.attributes["full_value"] == "Price dropped 5%"
+    assert state.attributes["truncated"] is False
+    assert state.attributes["difference"] == -5.0
+    assert state.attributes["changed_at"] == "2026-06-13T10:00:00.000000Z"
+
+
+async def test_last_change_sensor_truncates(
+    hass, setup_integration, mock_config_entry
+):
+    """A long human_difference is truncated; full text retained in attr."""
+    from custom_components.pagecrawl.const import MAX_STATE_LENGTH
+
+    long_diff = "d" * 400
+    coordinator = mock_config_entry.runtime_data.coordinator
+    data = dict(coordinator.data)
+    monitor = dict(data[1001])
+    latest = dict(monitor["latest"])
+    latest["human_difference"] = long_diff
+    monitor["latest"] = latest
+    data[1001] = monitor
+    coordinator.async_set_updated_data(data)
+    await hass.async_block_till_done()
+
+    ent_reg = er.async_get(hass)
+    eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_1001_last_change"
+    )
+    state = hass.states.get(eid)
+    assert len(state.state) == MAX_STATE_LENGTH
+    assert state.attributes["full_value"] == long_diff
+    assert state.attributes["truncated"] is True
 
 
 async def test_diagnostics_redacts_secrets(hass, mock_config_entry):

@@ -247,6 +247,11 @@ def sample_pages() -> list[dict[str, Any]]:
                     "id": 5001,
                     "status": "ok",
                     "created_at": now,
+                    # Poll-path AI data lives on the most recent check.
+                    "ai_summary": "The widget price dropped by 5 percent.",
+                    "priority_score": 72,
+                    "ai_importance_tag": "price_drop",
+                    "is_noise": False,
                     "elements": {
                         "11": {
                             "element_id": 11,
@@ -378,6 +383,103 @@ def empty_monitor_pages() -> list[dict[str, Any]]:
             "history": [],
         }
     ]
+
+
+@pytest.fixture
+def no_ai_pages() -> list[dict[str, Any]]:
+    """A normal monitor whose check carries no AI summary / priority."""
+    now = "2026-06-13T10:00:00.000000Z"
+    return [
+        {
+            "id": 4004,
+            "slug": "no-ai-mon",
+            "name": "No AI Monitor",
+            "url": "https://example.com/no-ai",
+            "status": "ok",
+            "last_checked_at": now,
+            "latest": {
+                "contents": "5",
+                "difference": 0,
+                "changed_at": now,
+                "human_difference": "No notable change",
+            },
+            "elements": [
+                {"id": 60, "type": "text", "selector": ".x", "label": "X"}
+            ],
+            "checks": [
+                {
+                    "id": 6001,
+                    "status": "ok",
+                    "created_at": now,
+                    "elements": {
+                        "60": {"element_id": 60, "contents": "value"}
+                    },
+                }
+            ],
+            "history": [],
+        }
+    ]
+
+
+@pytest.fixture
+def sample_folders() -> list[dict[str, Any]]:
+    """A flat folder tree as returned by GET /api/folders."""
+    return [
+        {"id": 1, "name": "Electronics", "slug": "electronics", "count": 2},
+        {"id": 2, "name": "Groceries", "slug": "groceries", "count": 1},
+        {"id": 3, "name": "Empty", "slug": "empty", "count": 0},
+    ]
+
+
+@pytest.fixture
+def multi_folder_pages() -> dict[str, list[dict[str, Any]]]:
+    """Monitors keyed by folder slug, plus the full-workspace list.
+
+    Change::toSimpleArray does NOT carry a folder id, so folder membership is
+    only knowable via the per-folder GET /api/pages?folder=<slug> call. This
+    fixture maps each folder slug to the monitors that fetch returns, and a
+    special "*"/all key for the full workspace list (every monitor).
+    """
+    now = "2026-06-13T10:00:00.000000Z"
+
+    def _mon(monitor_id: int, slug: str, name: str) -> dict[str, Any]:
+        return {
+            "id": monitor_id,
+            "slug": slug,
+            "name": name,
+            "url": f"https://example.com/{slug}",
+            "status": "ok",
+            "last_checked_at": now,
+            "latest": {"contents": "1", "changed_at": now},
+            "elements": [
+                {"id": monitor_id * 10 + 1, "type": "text", "selector": ".x", "label": "X"}
+            ],
+            "checks": [
+                {
+                    "id": monitor_id * 100,
+                    "status": "ok",
+                    "created_at": now,
+                    "elements": {
+                        str(monitor_id * 10 + 1): {
+                            "element_id": monitor_id * 10 + 1,
+                            "contents": "value",
+                        }
+                    },
+                }
+            ],
+            "history": [],
+        }
+
+    tv = _mon(2001, "tv", "Smart TV")
+    laptop = _mon(2002, "laptop", "Laptop")
+    milk = _mon(2003, "milk", "Milk")
+
+    return {
+        "electronics": [tv, laptop],
+        "groceries": [milk],
+        "empty": [],
+        "all": [tv, laptop, milk],
+    }
 
 
 @pytest.fixture

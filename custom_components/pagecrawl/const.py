@@ -26,8 +26,9 @@ CONF_BASE_URL: Final = "base_url"
 CONF_WORKSPACE_ID: Final = "workspace_id"
 CONF_UPDATE_MODE: Final = "update_mode"
 CONF_SCAN_INTERVAL: Final = "scan_interval"
-CONF_FOLDER: Final = "folder"
-CONF_TAGS: Final = "tags"
+CONF_IMPORT_MODE: Final = "import_mode"
+CONF_FOLDERS: Final = "folders"
+CONF_MONITORS: Final = "monitors"
 CONF_HOOK_ID: Final = "hook_id"
 CONF_SIGNING_SECRET: Final = "signing_secret"
 CONF_CLOUDHOOK_URL: Final = "cloudhook_url"
@@ -39,6 +40,18 @@ UPDATE_MODE_PUSH: Final = "push"
 UPDATE_MODE_POLL: Final = "poll"
 
 UPDATE_MODES: Final = [UPDATE_MODE_AUTO, UPDATE_MODE_PUSH, UPDATE_MODE_POLL]
+
+# --- Import scope modes ---------------------------------------------------
+# Which monitors in the workspace become Home Assistant devices.
+IMPORT_MODE_ALL: Final = "all"
+IMPORT_MODE_FOLDERS: Final = "folders"
+IMPORT_MODE_MONITORS: Final = "monitors"
+
+IMPORT_MODES: Final = [
+    IMPORT_MODE_ALL,
+    IMPORT_MODE_FOLDERS,
+    IMPORT_MODE_MONITORS,
+]
 
 # --- Events ---------------------------------------------------------------
 EVENT_CHANGE: Final = "pagecrawl_change"

@@ -47,7 +47,7 @@ class PageCrawlEntity(CoordinatorEntity[PageCrawlDataUpdateCoordinator]):
         monitor = self.monitor
         slug = monitor.get("slug")
         base = (self.coordinator.client._base_url or DEFAULT_BASE_URL).rstrip("/")
-        config_url = f"{base}/changes/{slug}" if slug else base
+        config_url = f"{base}/app/pages/{slug}" if slug else base
         return DeviceInfo(
             identifiers={(DOMAIN, f"{self._entry_id}:{self._monitor_id}")},
             name=monitor.get("name") or monitor.get("url") or f"Monitor {self._monitor_id}",

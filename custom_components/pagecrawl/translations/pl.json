@@ -11,10 +11,28 @@
           "workspace_id": "Workspace"
         }
       },
+      "import_options": {
+        "title": "Wybierz, co zaimportować",
+        "description": "Wybierz, które monitory staną się urządzeniami Home Assistant. Zaimportuj wszystko w workspace, tylko wybrane foldery lub tylko konkretne monitory.",
+        "data": {
+          "import_mode": "Zakres importu",
+          "folders": "Foldery",
+          "monitors": "Monitory"
+        },
+        "data_description": {
+          "import_mode": "Wszystkie importuje każdy monitor w workspace. Wybrane foldery importuje tylko monitory z folderów, które wybierzesz. Wybrane monitory importuje tylko monitory, które wskażesz.",
+          "folders": "Foldery do zaimportowania. Używane tylko, gdy zakres jest ustawiony na wybrane foldery.",
+          "monitors": "Monitory do zaimportowania. Używane tylko, gdy zakres jest ustawiony na wybrane monitory."
+        }
+      },
       "reauth_confirm": {
         "title": "Ponowne uwierzytelnianie w PageCrawl",
         "description": "Twój dostęp do PageCrawl wygasł lub został cofnięty. Zaloguj się ponownie, aby połączyć ten workspace."
       }
+    },
+    "error": {
+      "import_no_folders": "Wybierz co najmniej jeden folder lub zmień zakres.",
+      "import_no_monitors": "Wybierz co najmniej jeden monitor lub zmień zakres."
     },
     "abort": {
       "already_configured": "Ten workspace jest już skonfigurowany.",
@@ -46,16 +64,22 @@
         "data": {
           "update_mode": "Tryb aktualizacji",
           "scan_interval": "Interwał odpytywania (sekundy)",
-          "folder": "Filtr folderu",
-          "tags": "Filtr tagów"
+          "import_mode": "Zakres importu",
+          "folders": "Foldery",
+          "monitors": "Monitory"
         },
         "data_description": {
           "update_mode": "Auto włącza push, gdy dostępny jest osiągalny adres URL, a w przeciwnym razie odpytuje. Push i odpytywanie wymusza push z wolnym odpytywaniem uzgadniającym. Tylko odpytywanie nigdy nie rejestruje webhooka.",
           "scan_interval": "Jak często odpytywać, w sekundach. Minimum 60. Przy włączonym push jest to tylko wolna pętla uzgadniająca.",
-          "folder": "Ogranicz ten workspace do jednego folderu PageCrawl według jego slug. Pozostaw puste, aby objąć wszystkie foldery.",
-          "tags": "Ogranicz do monitorów z tymi tagami, oddzielonymi przecinkami. Pozostaw puste, aby objąć wszystkie monitory."
+          "import_mode": "Wszystkie importuje każdy monitor w workspace. Wybrane foldery importuje tylko monitory z folderów, które wybierzesz. Wybrane monitory importuje tylko monitory, które wskażesz.",
+          "folders": "Foldery do zaimportowania. Używane tylko, gdy zakres jest ustawiony na wybrane foldery.",
+          "monitors": "Monitory do zaimportowania. Używane tylko, gdy zakres jest ustawiony na wybrane monitory."
         }
       }
+    },
+    "error": {
+      "import_no_folders": "Wybierz co najmniej jeden folder lub zmień zakres.",
+      "import_no_monitors": "Wybierz co najmniej jeden monitor lub zmień zakres."
     }
   },
   "selector": {
@@ -64,6 +88,13 @@
         "auto": "Auto (push gdy dostępny, w przeciwnym razie odpytywanie)",
         "push": "Push i odpytywanie",
         "poll": "Tylko odpytywanie"
+      }
+    },
+    "import_mode": {
+      "options": {
+        "all": "Wszystkie monitory w workspace",
+        "folders": "Wybrane foldery",
+        "monitors": "Wybrane monitory"
       }
     }
   },
@@ -130,6 +161,15 @@
       },
       "change_percent": {
         "name": "Procent zmiany"
+      },
+      "ai_summary": {
+        "name": "Podsumowanie AI"
+      },
+      "ai_priority": {
+        "name": "Priorytet AI"
+      },
+      "last_change": {
+        "name": "Ostatnia zmiana"
       }
     },
     "button": {

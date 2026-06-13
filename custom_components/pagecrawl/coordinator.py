@@ -20,6 +20,9 @@ from .api import (
 from .const import (
     DOMAIN,
     EVENT_CHANGE,
+    IMPORT_MODE_ALL,
+    IMPORT_MODE_FOLDERS,
+    IMPORT_MODE_MONITORS,
     MIN_SCAN_INTERVAL,
 )
 
@@ -35,9 +38,23 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
         entry: ConfigEntry,
         client: PageCrawlClient,
         update_interval: int,
-        folder: str | None = None,
+        import_mode: str = IMPORT_MODE_ALL,
+        folders: list[str] | None = None,
+        monitors: list[str] | None = None,
     ) -> None:
-        """Initialize the coordinator."""
+        """Initialize the coordinator.
+
+        Import-scope filtering contract:
+          - ``import_mode == "all"``: every monitor in the workspace is in scope.
+          - ``import_mode == "folders"``: only monitors in ``folders`` (a list of
+            folder slugs); fetched via one ``async_list_pages(folder=slug)`` per
+            slug and merged/deduped by id.
+          - ``import_mode == "monitors"``: only monitors whose id (as a string)
+            is in ``monitors``.
+        The in-scope id set is exposed via ``in_scope_ids`` after each refresh so
+        __init__ can prune stale devices; ``apply_webhook_update`` ignores pushes
+        for out-of-scope monitors.
+        """
         super().__init__(
             hass,
             _LOGGER,
@@ -46,18 +63,50 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
         )
         self.entry = entry
         self.client = client
-        self.folder = folder
+        self.import_mode = import_mode
+        self.folders = list(folders or [])
+        self.monitors = list(monitors or [])
         self._base_interval = max(update_interval, MIN_SCAN_INTERVAL)
         # Tracks last seen latest.changed_at per monitor id, for change events.
         self._last_changed_at: dict[int, str | None] = {}
+        # Monitor ids currently in scope (populated after each refresh).
+        self.in_scope_ids: set[int] = set()
+
+    async def _async_fetch_pages(self) -> list[dict[str, Any]]:
+        """Fetch the in-scope pages according to the import mode."""
+        if self.import_mode == IMPORT_MODE_FOLDERS and self.folders:
+            # One call per folder slug, merged/deduped by monitor id.
+            merged: dict[int, dict[str, Any]] = {}
+            for slug in self.folders:
+                pages = await self.client.async_list_pages(
+                    folder=slug,
+                    workspace_id=self.client.workspace_id,
+                )
+                for page in pages:
+                    monitor_id = page.get("id")
+                    if monitor_id is None:
+                        continue
+                    merged[int(monitor_id)] = page
+            return list(merged.values())
+
+        # ALL and MONITORS both fetch the full workspace list; MONITORS filters
+        # by id below.
+        return await self.client.async_list_pages(
+            workspace_id=self.client.workspace_id,
+        )
+
+    def _in_scope(self, monitor_id: int) -> bool:
+        """Return whether a monitor id is within the configured import scope."""
+        if self.import_mode == IMPORT_MODE_MONITORS:
+            return str(monitor_id) in self.monitors
+        # ALL is always in scope; FOLDERS scope is already enforced by the
+        # per-folder fetch in _async_fetch_pages.
+        return True
 
     async def _async_update_data(self) -> dict[int, dict[str, Any]]:
         """Fetch the monitor list and key it by monitor id."""
         try:
-            pages = await self.client.async_list_pages(
-                folder=self.folder,
-                workspace_id=self.client.workspace_id,
-            )
+            pages = await self._async_fetch_pages()
         except PageCrawlAuthError as err:
             raise ConfigEntryAuthFailed(str(err)) from err
         except PageCrawlRateLimitError as err:
@@ -75,9 +124,12 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
             if monitor_id is None:
                 continue
             monitor_id = int(monitor_id)
+            if not self._in_scope(monitor_id):
+                continue
             result[monitor_id] = page
             self._maybe_fire_change(monitor_id, page)
 
+        self.in_scope_ids = set(result)
         return result
 
     def _maybe_fire_change(self, monitor_id: int, page: dict[str, Any]) -> None:
@@ -109,7 +161,7 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
                 "contents": latest.get("contents"),
                 "difference": latest.get("difference"),
                 "human_difference": latest.get("human_difference"),
-                "diff_url": f"https://pagecrawl.io/changes/{slug}" if slug else None,
+                "diff_url": f"https://pagecrawl.io/app/pages/{slug}" if slug else None,
                 "changed_at": latest.get("changed_at"),
             },
         )
@@ -129,7 +181,16 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
         current = dict(self.data or {})
 
         if monitor_id not in current:
-            # New monitor delivered via webhook: refresh to build entities.
+            # For monitor-scoped imports, only refresh for explicitly selected
+            # monitors; folder/all scopes resolve membership on the refresh.
+            if (
+                self.import_mode == IMPORT_MODE_MONITORS
+                and str(monitor_id) not in self.monitors
+            ):
+                return
+            # New (in-scope) monitor delivered via webhook: refresh to build
+            # entities. Folder scope is reconciled by the poll, which only keeps
+            # monitors returned by the per-folder fetch.
             self.hass.async_create_task(self.async_request_refresh())
             return
 

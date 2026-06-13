@@ -11,10 +11,28 @@
           "workspace_id": "Workspace"
         }
       },
+      "import_options": {
+        "title": "Elige qué importar",
+        "description": "Elige qué monitores se convierten en dispositivos de Home Assistant. Importa todo el workspace, solo las carpetas seleccionadas o solo monitores específicos.",
+        "data": {
+          "import_mode": "Alcance de importación",
+          "folders": "Carpetas",
+          "monitors": "Monitores"
+        },
+        "data_description": {
+          "import_mode": "Todos importa todos los monitores del workspace. Carpetas seleccionadas importa solo los monitores de las carpetas que elijas. Monitores seleccionados importa solo los monitores que elijas.",
+          "folders": "Carpetas que se importarán. Solo se usa cuando el alcance está configurado como carpetas seleccionadas.",
+          "monitors": "Monitores que se importarán. Solo se usa cuando el alcance está configurado como monitores seleccionados."
+        }
+      },
       "reauth_confirm": {
         "title": "Volver a autenticar con PageCrawl",
         "description": "Tu acceso a PageCrawl ha caducado o ha sido revocado. Inicia sesión de nuevo para volver a conectar este workspace."
       }
+    },
+    "error": {
+      "import_no_folders": "Selecciona al menos una carpeta o cambia el alcance.",
+      "import_no_monitors": "Selecciona al menos un monitor o cambia el alcance."
     },
     "abort": {
       "already_configured": "Este workspace ya está configurado.",
@@ -46,16 +64,22 @@
         "data": {
           "update_mode": "Modo de actualización",
           "scan_interval": "Intervalo de sondeo (segundos)",
-          "folder": "Filtro de carpeta",
-          "tags": "Filtro de etiquetas"
+          "import_mode": "Alcance de importación",
+          "folders": "Carpetas",
+          "monitors": "Monitores"
         },
         "data_description": {
           "update_mode": "El modo automático activa push cuando hay una URL accesible disponible y, en caso contrario, sondea. Push y sondeo fuerza push con un sondeo de reconciliación lento. Solo sondeo nunca registra un webhook.",
           "scan_interval": "Con qué frecuencia sondear, en segundos. Mínimo 60. Con push activado, esto es solo un bucle de reconciliación lento.",
-          "folder": "Limita este workspace a una sola carpeta de PageCrawl por su slug. Déjalo vacío para todas las carpetas.",
-          "tags": "Limitar a los monitores con estas etiquetas, separadas por comas. Déjalo vacío para todos los monitores."
+          "import_mode": "Todos importa todos los monitores del workspace. Carpetas seleccionadas importa solo los monitores de las carpetas que elijas. Monitores seleccionados importa solo los monitores que elijas.",
+          "folders": "Carpetas que se importarán. Solo se usa cuando el alcance está configurado como carpetas seleccionadas.",
+          "monitors": "Monitores que se importarán. Solo se usa cuando el alcance está configurado como monitores seleccionados."
         }
       }
+    },
+    "error": {
+      "import_no_folders": "Selecciona al menos una carpeta o cambia el alcance.",
+      "import_no_monitors": "Selecciona al menos un monitor o cambia el alcance."
     }
   },
   "selector": {
@@ -64,6 +88,13 @@
         "auto": "Automático (push cuando esté disponible; si no, sondeo)",
         "push": "Push y sondeo",
         "poll": "Solo sondeo"
+      }
+    },
+    "import_mode": {
+      "options": {
+        "all": "Todos los monitores del workspace",
+        "folders": "Carpetas seleccionadas",
+        "monitors": "Monitores seleccionados"
       }
     }
   },
@@ -130,6 +161,15 @@
       },
       "change_percent": {
         "name": "Porcentaje de cambio"
+      },
+      "ai_summary": {
+        "name": "Resumen de AI"
+      },
+      "ai_priority": {
+        "name": "Prioridad de AI"
+      },
+      "last_change": {
+        "name": "Último cambio"
       }
     },
     "button": {

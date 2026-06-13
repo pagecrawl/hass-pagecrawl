@@ -11,10 +11,28 @@
           "workspace_id": "Workspace"
         }
       },
+      "import_options": {
+        "title": "Välj vad som ska importeras",
+        "description": "Välj vilka övervakare som blir Home Assistant-enheter. Importera allt i workspacen, endast valda mappar eller endast specifika övervakare.",
+        "data": {
+          "import_mode": "Importomfattning",
+          "folders": "Mappar",
+          "monitors": "Övervakare"
+        },
+        "data_description": {
+          "import_mode": "Alla importerar varje övervakare i workspacen. Valda mappar importerar endast övervakare i de mappar du väljer. Valda övervakare importerar endast de övervakare du väljer.",
+          "folders": "Mappar att importera. Används endast när omfattningen är inställd på valda mappar.",
+          "monitors": "Övervakare att importera. Används endast när omfattningen är inställd på valda övervakare."
+        }
+      },
       "reauth_confirm": {
         "title": "Autentisera på nytt med PageCrawl",
         "description": "Din PageCrawl-åtkomst har upphört eller återkallats. Logga in igen för att återansluta den här workspacen."
       }
+    },
+    "error": {
+      "import_no_folders": "Välj minst en mapp eller ändra omfattningen.",
+      "import_no_monitors": "Välj minst en övervakare eller ändra omfattningen."
     },
     "abort": {
       "already_configured": "Den här workspacen är redan konfigurerad.",
@@ -46,16 +64,22 @@
         "data": {
           "update_mode": "Uppdateringsläge",
           "scan_interval": "Pollningsintervall (sekunder)",
-          "folder": "Mappfilter",
-          "tags": "Taggfilter"
+          "import_mode": "Importomfattning",
+          "folders": "Mappar",
+          "monitors": "Övervakare"
         },
         "data_description": {
           "update_mode": "Auto aktiverar push när en nåbar URL finns och pollar annars. Push och poll tvingar fram push med en långsam avstämningspollning. Endast polling registrerar aldrig någon webhook.",
           "scan_interval": "Hur ofta pollning sker, i sekunder. Minst 60. Med push aktiverat är detta bara en långsam avstämningsslinga.",
-          "folder": "Begränsa den här workspacen till en enda PageCrawl-mapp via dess slug. Lämna tomt för alla mappar.",
-          "tags": "Begränsa till övervakare med dessa taggar, kommaseparerade. Lämna tomt för alla övervakare."
+          "import_mode": "Alla importerar varje övervakare i workspacen. Valda mappar importerar endast övervakare i de mappar du väljer. Valda övervakare importerar endast de övervakare du väljer.",
+          "folders": "Mappar att importera. Används endast när omfattningen är inställd på valda mappar.",
+          "monitors": "Övervakare att importera. Används endast när omfattningen är inställd på valda övervakare."
         }
       }
+    },
+    "error": {
+      "import_no_folders": "Välj minst en mapp eller ändra omfattningen.",
+      "import_no_monitors": "Välj minst en övervakare eller ändra omfattningen."
     }
   },
   "selector": {
@@ -64,6 +88,13 @@
         "auto": "Auto (push när tillgängligt, annars polling)",
         "push": "Push och poll",
         "poll": "Endast polling"
+      }
+    },
+    "import_mode": {
+      "options": {
+        "all": "Alla övervakare i workspacen",
+        "folders": "Valda mappar",
+        "monitors": "Valda övervakare"
       }
     }
   },
@@ -130,6 +161,15 @@
       },
       "change_percent": {
         "name": "Ändring i procent"
+      },
+      "ai_summary": {
+        "name": "AI-sammanfattning"
+      },
+      "ai_priority": {
+        "name": "AI-prioritet"
+      },
+      "last_change": {
+        "name": "Senaste ändring"
       }
     },
     "button": {

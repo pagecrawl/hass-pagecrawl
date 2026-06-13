@@ -56,6 +56,31 @@ async def async_setup_entry(
                     PageCrawlPrimarySensor(coordinator, monitor_id)
                 )
 
+            # Last change sensor: human_difference is broadly available.
+            last_change_uid = f"{entry.entry_id}_{monitor_id}_last_change"
+            if last_change_uid not in known:
+                known.add(last_change_uid)
+                new_entities.append(
+                    PageCrawlLastChangeSensor(coordinator, monitor_id)
+                )
+
+            # AI sensors: only create once AI data is actually present so we
+            # don't clutter monitors without AI. They appear later via the
+            # coordinator listener if AI gets enabled.
+            if _has_ai_data(monitor):
+                ai_summary_uid = f"{entry.entry_id}_{monitor_id}_ai_summary"
+                if ai_summary_uid not in known:
+                    known.add(ai_summary_uid)
+                    new_entities.append(
+                        PageCrawlAiSummarySensor(coordinator, monitor_id)
+                    )
+                ai_priority_uid = f"{entry.entry_id}_{monitor_id}_ai_priority"
+                if ai_priority_uid not in known:
+                    known.add(ai_priority_uid)
+                    new_entities.append(
+                        PageCrawlAiPrioritySensor(coordinator, monitor_id)
+                    )
+
             for diag in _DIAGNOSTIC_DESCRIPTIONS:
                 diag_uid = f"{entry.entry_id}_{monitor_id}_diag_{diag['key']}"
                 if diag_uid not in known:
@@ -118,6 +143,69 @@ def _parse_float(value: Any) -> float | None:
         return float(cleaned)
     except ValueError:
         return None
+
+
+def get_ai_summary(monitor: dict[str, Any]) -> str | None:
+    """Resolve the AI summary of the latest change.
+
+    Prefers the push path (`latest.ai_summary`), falling back to the poll path
+    (`checks[0].ai_summary`). Returns None when neither is present.
+    """
+    latest = monitor.get("latest") or {}
+    summary = latest.get("ai_summary") or latest.get("short_summary")
+    if summary:
+        return str(summary)
+    checks = monitor.get("checks") or []
+    if checks:
+        check = checks[0] or {}
+        summary = check.get("ai_summary") or check.get("short_summary")
+        if summary:
+            return str(summary)
+    return None
+
+
+def get_ai_priority(monitor: dict[str, Any]) -> float | None:
+    """Resolve the AI priority score (0-100) for the latest change.
+
+    Prefers the push path (`latest.ai_priority_score`), falling back to the
+    poll path (`checks[0].priority_score`). Returns None when neither is a
+    usable number.
+    """
+    latest = monitor.get("latest") or {}
+    score = latest.get("ai_priority_score")
+    if score is None:
+        checks = monitor.get("checks") or []
+        if checks:
+            score = (checks[0] or {}).get("priority_score")
+    if score is None:
+        return None
+    if isinstance(score, bool):
+        return None
+    if isinstance(score, (int, float)):
+        return float(score)
+    return _parse_float(score)
+
+
+def _ai_meta(monitor: dict[str, Any]) -> dict[str, Any]:
+    """Return ai_importance_tag / is_noise from latest or checks[0] if present."""
+    latest = monitor.get("latest") or {}
+    checks = monitor.get("checks") or []
+    check = (checks[0] if checks else {}) or {}
+    meta: dict[str, Any] = {}
+    tag = latest.get("ai_importance_tag") or check.get("ai_importance_tag")
+    if tag is not None:
+        meta["ai_importance_tag"] = tag
+    is_noise = latest.get("is_noise")
+    if is_noise is None:
+        is_noise = check.get("is_noise")
+    if is_noise is not None:
+        meta["is_noise"] = is_noise
+    return meta
+
+
+def _has_ai_data(monitor: dict[str, Any]) -> bool:
+    """True when AI summary or priority is present for this monitor."""
+    return get_ai_summary(monitor) is not None or get_ai_priority(monitor) is not None
 
 
 def _coerce_list(value: Any) -> list[Any]:
@@ -261,7 +349,7 @@ class PageCrawlPrimarySensor(PageCrawlEntity, SensorEntity):
         latest = monitor.get("latest") or {}
         slug = monitor.get("slug")
         base = (self.coordinator.client._base_url or "").rstrip("/")
-        diff_url = f"{base}/changes/{slug}" if slug and base else None
+        diff_url = f"{base}/app/pages/{slug}" if slug and base else None
         return {
             "url": monitor.get("url"),
             "status": monitor.get("status"),
@@ -273,6 +361,103 @@ class PageCrawlPrimarySensor(PageCrawlEntity, SensorEntity):
             "screenshot_url": monitor.get("screenshot_url")
             or latest.get("screenshot_url"),
         }
+
+
+class PageCrawlAiSummarySensor(PageCrawlEntity, SensorEntity):
+    """AI-generated summary of the latest change."""
+
+    _attr_translation_key = "ai_summary"
+    _attr_icon = "mdi:robot"
+
+    def __init__(
+        self,
+        coordinator: PageCrawlDataUpdateCoordinator,
+        monitor_id: int,
+    ) -> None:
+        """Initialize the AI summary sensor."""
+        super().__init__(coordinator, monitor_id)
+        self._attr_unique_id = f"{self._entry_id}_{monitor_id}_ai_summary"
+
+    @property
+    def native_value(self) -> str | None:
+        """The AI summary, truncated to the state length limit."""
+        return _truncate_state(get_ai_summary(self.monitor))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Full summary text plus AI importance metadata."""
+        attrs: dict[str, Any] = {}
+        summary = get_ai_summary(self.monitor)
+        if summary is not None:
+            attrs["full_value"] = summary[:MAX_ATTR_LENGTH]
+            attrs["truncated"] = len(summary) > MAX_STATE_LENGTH
+        attrs.update(_ai_meta(self.monitor))
+        return attrs
+
+
+class PageCrawlAiPrioritySensor(PageCrawlEntity, SensorEntity):
+    """AI priority score (0-100) for the latest change."""
+
+    _attr_translation_key = "ai_priority"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:flag"
+
+    def __init__(
+        self,
+        coordinator: PageCrawlDataUpdateCoordinator,
+        monitor_id: int,
+    ) -> None:
+        """Initialize the AI priority sensor."""
+        super().__init__(coordinator, monitor_id)
+        self._attr_unique_id = f"{self._entry_id}_{monitor_id}_ai_priority"
+
+    @property
+    def native_value(self) -> float | None:
+        """The AI priority score, or None when unavailable."""
+        return get_ai_priority(self.monitor)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """AI importance metadata alongside the score."""
+        return _ai_meta(self.monitor)
+
+
+class PageCrawlLastChangeSensor(PageCrawlEntity, SensorEntity):
+    """Human-readable description of the latest change."""
+
+    _attr_translation_key = "last_change"
+    _attr_icon = "mdi:history"
+
+    def __init__(
+        self,
+        coordinator: PageCrawlDataUpdateCoordinator,
+        monitor_id: int,
+    ) -> None:
+        """Initialize the last change sensor."""
+        super().__init__(coordinator, monitor_id)
+        self._attr_unique_id = f"{self._entry_id}_{monitor_id}_last_change"
+
+    @property
+    def native_value(self) -> str | None:
+        """The latest human_difference line, truncated to the state limit."""
+        latest = self.monitor.get("latest") or {}
+        return _truncate_state(latest.get("human_difference"))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Full change text plus changed_at and difference."""
+        latest = self.monitor.get("latest") or {}
+        attrs: dict[str, Any] = {
+            "changed_at": latest.get("changed_at"),
+            "difference": latest.get("difference"),
+        }
+        human = latest.get("human_difference")
+        if human is not None:
+            text = str(human)
+            attrs["full_value"] = text[:MAX_ATTR_LENGTH]
+            attrs["truncated"] = len(text) > MAX_STATE_LENGTH
+        return attrs
 
 
 class PageCrawlDiagnosticSensor(PageCrawlEntity, SensorEntity):

@@ -41,7 +41,8 @@ type: Core, Container, OS, and Supervised.
 - A "Check now" button on every monitor, plus `pagecrawl.check_now` and
   `pagecrawl.track_page` services.
 - A `pagecrawl_change` event for automations.
-- Optional folder and tag filtering, and support for multiple workspaces.
+- A choice of what to import (everything, selected folders, or selected monitors), and
+  support for multiple workspaces.
 
 It works for **free PageCrawl accounts**. You sign in with OAuth and click Authorize. There
 is no API token to create or paste.
@@ -135,6 +136,18 @@ integration raises a repair notice and uses polling.
 The poll interval has a 60 second minimum to respect PageCrawl rate limits. With push
 enabled, the poll is only a slow reconciliation loop to catch any missed deliveries.
 
+## Choosing what to import
+
+During setup you pick how much of the workspace to bring into Home Assistant:
+
+- **All monitors (default)**: every monitor in the workspace becomes a device.
+- **Selected folders**: only monitors in the folders you choose are imported.
+- **Selected monitors**: you hand-pick the exact monitors to import.
+
+You can change this later in the integration's **Configure** (options) screen. If you
+narrow the selection, the devices and entities for the de-selected monitors are removed
+automatically. Widening it again imports the newly in-scope monitors on the next update.
+
 ## Multiple workspaces
 
 PageCrawl scopes everything to the current workspace. To monitor more than one workspace,
@@ -161,6 +174,15 @@ Every monitor also gets diagnostic entities (status, last checked, change percen
 device is never empty, even if its element types are unknown. Common attributes such as the
 URL, status, change percent, and diff and screenshot links are exposed on the primary
 sensor.
+
+Each monitor also gets a few per-monitor sensors that describe its latest change:
+
+- **Last change**: a short, human-readable summary of what changed at the last check (full
+  text in the `full_value` attribute).
+- **AI summary**: the AI summary of the latest change. It appears only when AI analysis is
+  enabled on that monitor.
+- **AI priority**: a diagnostic 0-100 score for how important the latest change is. It
+  appears only when AI analysis is enabled on that monitor.
 
 When a monitor tracks several elements, push updates carry the changed element's id, so each
 element's entity updates the instant its own value changes, not just the primary one. The

@@ -11,10 +11,28 @@
           "workspace_id": "工作区"
         }
       },
+      "import_options": {
+        "title": "选择要导入的内容",
+        "description": "选择哪些监控项成为 Home Assistant 设备。可导入工作区中的全部内容、仅选定的文件夹，或仅指定的监控项。",
+        "data": {
+          "import_mode": "导入范围",
+          "folders": "文件夹",
+          "monitors": "监控项"
+        },
+        "data_description": {
+          "import_mode": "“全部”会导入工作区中的每一个监控项。“选定的文件夹”仅导入您所选文件夹中的监控项。“选定的监控项”仅导入您选取的监控项。",
+          "folders": "要导入的文件夹。仅在范围设为选定的文件夹时使用。",
+          "monitors": "要导入的监控项。仅在范围设为选定的监控项时使用。"
+        }
+      },
       "reauth_confirm": {
         "title": "重新通过 PageCrawl 验证",
         "description": "您的 PageCrawl 访问权限已过期或被撤销。请重新登录以重新连接此工作区。"
       }
+    },
+    "error": {
+      "import_no_folders": "请至少选择一个文件夹，或更改范围。",
+      "import_no_monitors": "请至少选择一个监控项，或更改范围。"
     },
     "abort": {
       "already_configured": "此工作区已设置。",
@@ -46,16 +64,22 @@
         "data": {
           "update_mode": "更新模式",
           "scan_interval": "轮询间隔（秒）",
-          "folder": "文件夹筛选",
-          "tags": "标签筛选"
+          "import_mode": "导入范围",
+          "folders": "文件夹",
+          "monitors": "监控项"
         },
         "data_description": {
           "update_mode": "“自动”会在有可访问的 URL 时启用推送，否则进行轮询。“推送和轮询”会强制使用推送，并辅以低频的对账轮询。“仅轮询”不会注册 webhook。",
           "scan_interval": "轮询频率（秒）。最小为 60。启用推送后，这仅作为低频的对账循环。",
-          "folder": "通过 slug 将此工作区限定到单个 PageCrawl 文件夹。留空表示所有文件夹。",
-          "tags": "限定为带有这些标签的监控项，以英文逗号分隔。留空表示所有监控项。"
+          "import_mode": "“全部”会导入工作区中的每一个监控项。“选定的文件夹”仅导入您所选文件夹中的监控项。“选定的监控项”仅导入您选取的监控项。",
+          "folders": "要导入的文件夹。仅在范围设为选定的文件夹时使用。",
+          "monitors": "要导入的监控项。仅在范围设为选定的监控项时使用。"
         }
       }
+    },
+    "error": {
+      "import_no_folders": "请至少选择一个文件夹，或更改范围。",
+      "import_no_monitors": "请至少选择一个监控项，或更改范围。"
     }
   },
   "selector": {
@@ -64,6 +88,13 @@
         "auto": "自动（可用时推送，否则轮询）",
         "push": "推送和轮询",
         "poll": "仅轮询"
+      }
+    },
+    "import_mode": {
+      "options": {
+        "all": "工作区中的所有监控项",
+        "folders": "选定的文件夹",
+        "monitors": "选定的监控项"
       }
     }
   },
@@ -130,6 +161,15 @@
       },
       "change_percent": {
         "name": "变更百分比"
+      },
+      "ai_summary": {
+        "name": "AI 摘要"
+      },
+      "ai_priority": {
+        "name": "AI 优先级"
+      },
+      "last_change": {
+        "name": "上次变更"
       }
     },
     "button": {

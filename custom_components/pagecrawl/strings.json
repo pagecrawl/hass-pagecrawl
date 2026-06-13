@@ -11,10 +11,28 @@
           "workspace_id": "Workspace"
         }
       },
+      "import_options": {
+        "title": "Choose what to import",
+        "description": "Pick which monitors become Home Assistant devices. Import everything in the workspace, only selected folders, or only specific monitors.",
+        "data": {
+          "import_mode": "Import scope",
+          "folders": "Folders",
+          "monitors": "Monitors"
+        },
+        "data_description": {
+          "import_mode": "All imports every monitor in the workspace. Selected folders imports only monitors in the folders you choose. Selected monitors imports only the monitors you pick.",
+          "folders": "Folders to import. Only used when the scope is set to selected folders.",
+          "monitors": "Monitors to import. Only used when the scope is set to selected monitors."
+        }
+      },
       "reauth_confirm": {
         "title": "Reauthenticate with PageCrawl",
         "description": "Your PageCrawl access has expired or was revoked. Sign in again to reconnect this workspace."
       }
+    },
+    "error": {
+      "import_no_folders": "Select at least one folder, or change the scope.",
+      "import_no_monitors": "Select at least one monitor, or change the scope."
     },
     "abort": {
       "already_configured": "This workspace is already set up.",
@@ -46,16 +64,22 @@
         "data": {
           "update_mode": "Update mode",
           "scan_interval": "Poll interval (seconds)",
-          "folder": "Folder filter",
-          "tags": "Tag filter"
+          "import_mode": "Import scope",
+          "folders": "Folders",
+          "monitors": "Monitors"
         },
         "data_description": {
           "update_mode": "Auto enables push when a reachable URL is available and otherwise polls. Push and poll forces push with a slow reconcile poll. Polling only never registers a webhook.",
           "scan_interval": "How often to poll, in seconds. Minimum 60. With push enabled this is only a slow reconciliation loop.",
-          "folder": "Limit this workspace to a single PageCrawl folder by its slug. Leave empty for all folders.",
-          "tags": "Limit to monitors with these tags, comma separated. Leave empty for all monitors."
+          "import_mode": "All imports every monitor in the workspace. Selected folders imports only monitors in the folders you choose. Selected monitors imports only the monitors you pick.",
+          "folders": "Folders to import. Only used when the scope is set to selected folders.",
+          "monitors": "Monitors to import. Only used when the scope is set to selected monitors."
         }
       }
+    },
+    "error": {
+      "import_no_folders": "Select at least one folder, or change the scope.",
+      "import_no_monitors": "Select at least one monitor, or change the scope."
     }
   },
   "selector": {
@@ -64,6 +88,13 @@
         "auto": "Auto (push when available, otherwise poll)",
         "push": "Push and poll",
         "poll": "Polling only"
+      }
+    },
+    "import_mode": {
+      "options": {
+        "all": "All monitors in the workspace",
+        "folders": "Selected folders",
+        "monitors": "Selected monitors"
       }
     }
   },
@@ -130,6 +161,15 @@
       },
       "change_percent": {
         "name": "Change percent"
+      },
+      "ai_summary": {
+        "name": "AI summary"
+      },
+      "ai_priority": {
+        "name": "AI priority"
+      },
+      "last_change": {
+        "name": "Last change"
       }
     },
     "button": {

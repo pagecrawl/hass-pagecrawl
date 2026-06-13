@@ -11,10 +11,28 @@
           "workspace_id": "Workspace"
         }
       },
+      "import_options": {
+        "title": "Scegli cosa importare",
+        "description": "Scegli quali monitor diventano dispositivi di Home Assistant. Importa tutto il workspace, solo le cartelle selezionate o solo monitor specifici.",
+        "data": {
+          "import_mode": "Ambito di importazione",
+          "folders": "Cartelle",
+          "monitors": "Monitor"
+        },
+        "data_description": {
+          "import_mode": "Tutti importa ogni monitor del workspace. Cartelle selezionate importa solo i monitor nelle cartelle che scegli. Monitor selezionati importa solo i monitor che scegli.",
+          "folders": "Cartelle da importare. Usato solo quando l'ambito è impostato su cartelle selezionate.",
+          "monitors": "Monitor da importare. Usato solo quando l'ambito è impostato su monitor selezionati."
+        }
+      },
       "reauth_confirm": {
         "title": "Autentica di nuovo con PageCrawl",
         "description": "L'accesso a PageCrawl è scaduto o è stato revocato. Accedi di nuovo per riconnettere questo workspace."
       }
+    },
+    "error": {
+      "import_no_folders": "Seleziona almeno una cartella oppure cambia l'ambito.",
+      "import_no_monitors": "Seleziona almeno un monitor oppure cambia l'ambito."
     },
     "abort": {
       "already_configured": "Questo workspace è già configurato.",
@@ -46,16 +64,22 @@
         "data": {
           "update_mode": "Modalità di aggiornamento",
           "scan_interval": "Intervallo di polling (secondi)",
-          "folder": "Filtro cartella",
-          "tags": "Filtro tag"
+          "import_mode": "Ambito di importazione",
+          "folders": "Cartelle",
+          "monitors": "Monitor"
         },
         "data_description": {
           "update_mode": "Auto abilita il push quando è disponibile un URL raggiungibile, altrimenti usa il polling. Push e polling forza il push con un polling di riconciliazione lento. Solo polling non registra mai un webhook.",
           "scan_interval": "Con quale frequenza eseguire il polling, in secondi. Minimo 60. Con il push abilitato è solo un ciclo di riconciliazione lento.",
-          "folder": "Limita questo workspace a un'unica cartella PageCrawl tramite il suo slug. Lascia vuoto per tutte le cartelle.",
-          "tags": "Limita ai monitor con questi tag, separati da virgola. Lascia vuoto per tutti i monitor."
+          "import_mode": "Tutti importa ogni monitor del workspace. Cartelle selezionate importa solo i monitor nelle cartelle che scegli. Monitor selezionati importa solo i monitor che scegli.",
+          "folders": "Cartelle da importare. Usato solo quando l'ambito è impostato su cartelle selezionate.",
+          "monitors": "Monitor da importare. Usato solo quando l'ambito è impostato su monitor selezionati."
         }
       }
+    },
+    "error": {
+      "import_no_folders": "Seleziona almeno una cartella oppure cambia l'ambito.",
+      "import_no_monitors": "Seleziona almeno un monitor oppure cambia l'ambito."
     }
   },
   "selector": {
@@ -64,6 +88,13 @@
         "auto": "Auto (push se disponibile, altrimenti polling)",
         "push": "Push e polling",
         "poll": "Solo polling"
+      }
+    },
+    "import_mode": {
+      "options": {
+        "all": "Tutti i monitor del workspace",
+        "folders": "Cartelle selezionate",
+        "monitors": "Monitor selezionati"
       }
     }
   },
@@ -130,6 +161,15 @@
       },
       "change_percent": {
         "name": "Percentuale di modifica"
+      },
+      "ai_summary": {
+        "name": "Riepilogo AI"
+      },
+      "ai_priority": {
+        "name": "Priorità AI"
+      },
+      "last_change": {
+        "name": "Ultima modifica"
       }
     },
     "button": {

@@ -11,10 +11,28 @@
           "workspace_id": "Workspace"
         }
       },
+      "import_options": {
+        "title": "Auswählen, was importiert werden soll",
+        "description": "Lege fest, welche Monitore zu Home Assistant-Geräten werden. Importiere alles im Workspace, nur ausgewählte Ordner oder nur bestimmte Monitore.",
+        "data": {
+          "import_mode": "Importumfang",
+          "folders": "Ordner",
+          "monitors": "Monitore"
+        },
+        "data_description": {
+          "import_mode": "Alle importiert jeden Monitor im Workspace. Ausgewählte Ordner importiert nur Monitore in den von dir ausgewählten Ordnern. Ausgewählte Monitore importiert nur die von dir ausgewählten Monitore.",
+          "folders": "Zu importierende Ordner. Wird nur verwendet, wenn der Umfang auf ausgewählte Ordner gesetzt ist.",
+          "monitors": "Zu importierende Monitore. Wird nur verwendet, wenn der Umfang auf ausgewählte Monitore gesetzt ist."
+        }
+      },
       "reauth_confirm": {
         "title": "Erneut bei PageCrawl anmelden",
         "description": "Dein PageCrawl-Zugriff ist abgelaufen oder wurde widerrufen. Melde dich erneut an, um diesen Workspace wieder zu verbinden."
       }
+    },
+    "error": {
+      "import_no_folders": "Wähle mindestens einen Ordner aus oder ändere den Umfang.",
+      "import_no_monitors": "Wähle mindestens einen Monitor aus oder ändere den Umfang."
     },
     "abort": {
       "already_configured": "Dieser Workspace ist bereits eingerichtet.",
@@ -46,16 +64,22 @@
         "data": {
           "update_mode": "Aktualisierungsmodus",
           "scan_interval": "Abrufintervall (Sekunden)",
-          "folder": "Ordnerfilter",
-          "tags": "Tag-Filter"
+          "import_mode": "Importumfang",
+          "folders": "Ordner",
+          "monitors": "Monitore"
         },
         "data_description": {
           "update_mode": "Automatisch aktiviert Push, wenn eine erreichbare URL verfügbar ist, und ruft andernfalls ab. Push und Abruf erzwingt Push mit einem langsamen Abgleichsabruf. Nur Abruf registriert nie einen Webhook.",
           "scan_interval": "Wie oft abgerufen wird, in Sekunden. Mindestens 60. Bei aktiviertem Push ist dies nur eine langsame Abgleichsschleife.",
-          "folder": "Beschränke diesen Workspace auf einen einzelnen PageCrawl-Ordner anhand seines Slugs. Leer lassen für alle Ordner.",
-          "tags": "Auf Monitore mit diesen Tags beschränken, durch Kommas getrennt. Leer lassen für alle Monitore."
+          "import_mode": "Alle importiert jeden Monitor im Workspace. Ausgewählte Ordner importiert nur Monitore in den von dir ausgewählten Ordnern. Ausgewählte Monitore importiert nur die von dir ausgewählten Monitore.",
+          "folders": "Zu importierende Ordner. Wird nur verwendet, wenn der Umfang auf ausgewählte Ordner gesetzt ist.",
+          "monitors": "Zu importierende Monitore. Wird nur verwendet, wenn der Umfang auf ausgewählte Monitore gesetzt ist."
         }
       }
+    },
+    "error": {
+      "import_no_folders": "Wähle mindestens einen Ordner aus oder ändere den Umfang.",
+      "import_no_monitors": "Wähle mindestens einen Monitor aus oder ändere den Umfang."
     }
   },
   "selector": {
@@ -64,6 +88,13 @@
         "auto": "Automatisch (Push, wenn verfügbar, andernfalls Abruf)",
         "push": "Push und Abruf",
         "poll": "Nur Abruf"
+      }
+    },
+    "import_mode": {
+      "options": {
+        "all": "Alle Monitore im Workspace",
+        "folders": "Ausgewählte Ordner",
+        "monitors": "Ausgewählte Monitore"
       }
     }
   },
@@ -130,6 +161,15 @@
       },
       "change_percent": {
         "name": "Änderung in Prozent"
+      },
+      "ai_summary": {
+        "name": "AI-Zusammenfassung"
+      },
+      "ai_priority": {
+        "name": "AI-Priorität"
+      },
+      "last_change": {
+        "name": "Letzte Änderung"
       }
     },
     "button": {

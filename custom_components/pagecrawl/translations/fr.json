@@ -11,10 +11,28 @@
           "workspace_id": "Workspace"
         }
       },
+      "import_options": {
+        "title": "Choisir ce qu'il faut importer",
+        "description": "Sélectionnez les moniteurs qui deviennent des appareils Home Assistant. Importez tout le workspace, seulement les dossiers sélectionnés ou seulement des moniteurs spécifiques.",
+        "data": {
+          "import_mode": "Portée de l'import",
+          "folders": "Dossiers",
+          "monitors": "Moniteurs"
+        },
+        "data_description": {
+          "import_mode": "Tous importe chaque moniteur du workspace. Dossiers sélectionnés importe seulement les moniteurs des dossiers que vous choisissez. Moniteurs sélectionnés importe seulement les moniteurs que vous choisissez.",
+          "folders": "Dossiers à importer. Utilisé uniquement lorsque la portée est définie sur les dossiers sélectionnés.",
+          "monitors": "Moniteurs à importer. Utilisé uniquement lorsque la portée est définie sur les moniteurs sélectionnés."
+        }
+      },
       "reauth_confirm": {
         "title": "Se réauthentifier auprès de PageCrawl",
         "description": "Votre accès PageCrawl a expiré ou a été révoqué. Reconnectez-vous pour rétablir ce workspace."
       }
+    },
+    "error": {
+      "import_no_folders": "Sélectionnez au moins un dossier, ou changez la portée.",
+      "import_no_monitors": "Sélectionnez au moins un moniteur, ou changez la portée."
     },
     "abort": {
       "already_configured": "Ce workspace est déjà configuré.",
@@ -46,16 +64,22 @@
         "data": {
           "update_mode": "Mode de mise à jour",
           "scan_interval": "Intervalle d'interrogation (secondes)",
-          "folder": "Filtre par dossier",
-          "tags": "Filtre par étiquette"
+          "import_mode": "Portée de l'import",
+          "folders": "Dossiers",
+          "monitors": "Moniteurs"
         },
         "data_description": {
           "update_mode": "Auto active le mode push lorsqu'une URL joignable est disponible, et interroge sinon. Push et interrogation force le mode push avec une interrogation de réconciliation lente. Interrogation uniquement n'enregistre jamais de webhook.",
           "scan_interval": "Fréquence d'interrogation, en secondes. Minimum 60. Avec le mode push activé, il ne s'agit que d'une boucle de réconciliation lente.",
-          "folder": "Limiter ce workspace à un seul dossier PageCrawl identifié par son slug. Laissez vide pour tous les dossiers.",
-          "tags": "Limiter aux moniteurs portant ces étiquettes, séparées par des virgules. Laissez vide pour tous les moniteurs."
+          "import_mode": "Tous importe chaque moniteur du workspace. Dossiers sélectionnés importe seulement les moniteurs des dossiers que vous choisissez. Moniteurs sélectionnés importe seulement les moniteurs que vous choisissez.",
+          "folders": "Dossiers à importer. Utilisé uniquement lorsque la portée est définie sur les dossiers sélectionnés.",
+          "monitors": "Moniteurs à importer. Utilisé uniquement lorsque la portée est définie sur les moniteurs sélectionnés."
         }
       }
+    },
+    "error": {
+      "import_no_folders": "Sélectionnez au moins un dossier, ou changez la portée.",
+      "import_no_monitors": "Sélectionnez au moins un moniteur, ou changez la portée."
     }
   },
   "selector": {
@@ -64,6 +88,13 @@
         "auto": "Auto (push si disponible, sinon interrogation)",
         "push": "Push et interrogation",
         "poll": "Interrogation uniquement"
+      }
+    },
+    "import_mode": {
+      "options": {
+        "all": "Tous les moniteurs du workspace",
+        "folders": "Dossiers sélectionnés",
+        "monitors": "Moniteurs sélectionnés"
       }
     }
   },
@@ -130,6 +161,15 @@
       },
       "change_percent": {
         "name": "Pourcentage de changement"
+      },
+      "ai_summary": {
+        "name": "Résumé AI"
+      },
+      "ai_priority": {
+        "name": "Priorité AI"
+      },
+      "last_change": {
+        "name": "Dernier changement"
       }
     },
     "button": {

@@ -11,10 +11,28 @@
           "workspace_id": "Workspace"
         }
       },
+      "import_options": {
+        "title": "Kies wat je wilt importeren",
+        "description": "Kies welke monitors Home Assistant-apparaten worden. Importeer alles in de workspace, alleen geselecteerde mappen of alleen specifieke monitors.",
+        "data": {
+          "import_mode": "Importbereik",
+          "folders": "Mappen",
+          "monitors": "Monitors"
+        },
+        "data_description": {
+          "import_mode": "Alles importeert elke monitor in de workspace. Geselecteerde mappen importeert alleen monitors in de mappen die je kiest. Geselecteerde monitors importeert alleen de monitors die je kiest.",
+          "folders": "Mappen die geïmporteerd moeten worden. Wordt alleen gebruikt wanneer het bereik is ingesteld op geselecteerde mappen.",
+          "monitors": "Monitors die geïmporteerd moeten worden. Wordt alleen gebruikt wanneer het bereik is ingesteld op geselecteerde monitors."
+        }
+      },
       "reauth_confirm": {
         "title": "Opnieuw verifiëren met PageCrawl",
         "description": "Je PageCrawl-toegang is verlopen of ingetrokken. Meld je opnieuw aan om deze workspace opnieuw te verbinden."
       }
+    },
+    "error": {
+      "import_no_folders": "Selecteer ten minste één map of wijzig het bereik.",
+      "import_no_monitors": "Selecteer ten minste één monitor of wijzig het bereik."
     },
     "abort": {
       "already_configured": "Deze workspace is al ingesteld.",
@@ -46,16 +64,22 @@
         "data": {
           "update_mode": "Updatemodus",
           "scan_interval": "Pollinterval (seconden)",
-          "folder": "Mapfilter",
-          "tags": "Tagfilter"
+          "import_mode": "Importbereik",
+          "folders": "Mappen",
+          "monitors": "Monitors"
         },
         "data_description": {
           "update_mode": "Auto schakelt push in wanneer een bereikbare URL beschikbaar is en polt anders. Push en poll dwingt push af met een trage afstemmingspoll. Alleen pollen registreert nooit een webhook.",
           "scan_interval": "Hoe vaak er gepolld wordt, in seconden. Minimaal 60. Met push ingeschakeld is dit alleen een trage afstemmingslus.",
-          "folder": "Beperk deze workspace tot één PageCrawl-map op basis van de slug. Laat leeg voor alle mappen.",
-          "tags": "Beperk tot monitors met deze tags, gescheiden door komma's. Laat leeg voor alle monitors."
+          "import_mode": "Alles importeert elke monitor in de workspace. Geselecteerde mappen importeert alleen monitors in de mappen die je kiest. Geselecteerde monitors importeert alleen de monitors die je kiest.",
+          "folders": "Mappen die geïmporteerd moeten worden. Wordt alleen gebruikt wanneer het bereik is ingesteld op geselecteerde mappen.",
+          "monitors": "Monitors die geïmporteerd moeten worden. Wordt alleen gebruikt wanneer het bereik is ingesteld op geselecteerde monitors."
         }
       }
+    },
+    "error": {
+      "import_no_folders": "Selecteer ten minste één map of wijzig het bereik.",
+      "import_no_monitors": "Selecteer ten minste één monitor of wijzig het bereik."
     }
   },
   "selector": {
@@ -64,6 +88,13 @@
         "auto": "Auto (push indien beschikbaar, anders pollen)",
         "push": "Push en poll",
         "poll": "Alleen pollen"
+      }
+    },
+    "import_mode": {
+      "options": {
+        "all": "Alle monitors in de workspace",
+        "folders": "Geselecteerde mappen",
+        "monitors": "Geselecteerde monitors"
       }
     }
   },
@@ -130,6 +161,15 @@
       },
       "change_percent": {
         "name": "Wijzigingspercentage"
+      },
+      "ai_summary": {
+        "name": "AI-samenvatting"
+      },
+      "ai_priority": {
+        "name": "AI-prioriteit"
+      },
+      "last_change": {
+        "name": "Laatste wijziging"
       }
     },
     "button": {

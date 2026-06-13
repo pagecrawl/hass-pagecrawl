@@ -19,19 +19,30 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers import config_entry_oauth2_flow
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import (
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .api import PageCrawlClient, PageCrawlError
 from .const import (
-    CONF_FOLDER,
+    CONF_BASE_URL,
+    CONF_FOLDERS,
+    CONF_IMPORT_MODE,
+    CONF_MONITORS,
     CONF_SCAN_INTERVAL,
-    CONF_TAGS,
     CONF_UPDATE_MODE,
     CONF_WORKSPACE_ID,
     DEFAULT_BASE_URL,
     DEFAULT_CLIENT_ID,
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
+    IMPORT_MODE_ALL,
+    IMPORT_MODE_FOLDERS,
+    IMPORT_MODE_MONITORS,
+    IMPORT_MODES,
     MIN_SCAN_INTERVAL,
     OAUTH_SCOPE,
     UPDATE_MODE_AUTO,
@@ -39,6 +50,65 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _import_options_schema(
+    folders: list[dict[str, Any]],
+    monitors: list[dict[str, Any]],
+    defaults: Mapping[str, Any],
+) -> vol.Schema:
+    """Build the import-scope schema (mode + folder/monitor multi-selects)."""
+    folder_options = [
+        SelectOptionDict(
+            value=str(f.get("slug")),
+            label=f.get("name") or str(f.get("slug")),
+        )
+        for f in folders
+        if f.get("slug")
+    ]
+    monitor_options = [
+        SelectOptionDict(
+            value=str(m.get("id")),
+            label=m.get("name") or f"Monitor {m.get('id')}",
+        )
+        for m in monitors
+        if m.get("id") is not None
+    ]
+
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_IMPORT_MODE,
+                default=defaults.get(CONF_IMPORT_MODE, IMPORT_MODE_ALL),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=list(IMPORT_MODES),
+                    translation_key=CONF_IMPORT_MODE,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Optional(
+                CONF_FOLDERS,
+                default=list(defaults.get(CONF_FOLDERS, []) or []),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=folder_options,
+                    multiple=True,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Optional(
+                CONF_MONITORS,
+                default=list(defaults.get(CONF_MONITORS, []) or []),
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=monitor_options,
+                    multiple=True,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
+        }
+    )
 
 
 class PageCrawlOAuth2FlowHandler(
@@ -55,6 +125,9 @@ class PageCrawlOAuth2FlowHandler(
         self._token_data: dict[str, Any] | None = None
         self._user: dict[str, Any] | None = None
         self._workspaces: list[dict[str, Any]] = []
+        self._workspace: dict[str, Any] | None = None
+        self._folders: list[dict[str, Any]] = []
+        self._monitors: list[dict[str, Any]] = []
 
     @property
     def logger(self) -> logging.Logger:
@@ -143,7 +216,6 @@ class PageCrawlOAuth2FlowHandler(
 
         user_id = self._user.get("id") or (self._user.get("user") or {}).get("id")
         workspace_id = workspace.get("id")
-        workspace_name = workspace.get("name") or f"Workspace {workspace_id}"
 
         unique_id = f"{user_id}:{workspace_id}"
         await self.async_set_unique_id(unique_id)
@@ -162,7 +234,71 @@ class PageCrawlOAuth2FlowHandler(
 
         self._abort_if_unique_id_configured()
 
-        return self.async_create_entry(title=workspace_name, data=entry_data)
+        # Remember the workspace and let the user choose what to import.
+        self._workspace = workspace
+        return await self.async_step_import_options()
+
+    async def async_step_import_options(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Let the user choose which monitors become HA devices."""
+        assert self._token_data is not None
+        assert self._workspace is not None
+
+        workspace_id = self._workspace.get("id")
+        workspace_name = (
+            self._workspace.get("name") or f"Workspace {workspace_id}"
+        )
+
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            mode = user_input.get(CONF_IMPORT_MODE, IMPORT_MODE_ALL)
+            folders = user_input.get(CONF_FOLDERS, []) or []
+            monitors = user_input.get(CONF_MONITORS, []) or []
+            if mode == IMPORT_MODE_FOLDERS and not folders:
+                errors[CONF_FOLDERS] = "import_no_folders"
+            elif mode == IMPORT_MODE_MONITORS and not monitors:
+                errors[CONF_MONITORS] = "import_no_monitors"
+            else:
+                options = {
+                    CONF_IMPORT_MODE: mode,
+                    CONF_FOLDERS: folders if mode == IMPORT_MODE_FOLDERS else [],
+                    CONF_MONITORS: (
+                        monitors if mode == IMPORT_MODE_MONITORS else []
+                    ),
+                }
+                return self.async_create_entry(
+                    title=workspace_name,
+                    data={
+                        **self._token_data,
+                        CONF_WORKSPACE_ID: workspace_id,
+                    },
+                    options=options,
+                )
+
+        # Fetch folders + monitors for the selectors.
+        client = self._build_client(self._token_data)
+        try:
+            self._folders = await client.async_list_folders(
+                workspace_id=workspace_id
+            )
+            self._monitors = await client.async_list_pages(
+                workspace_id=workspace_id
+            )
+        except PageCrawlError as err:
+            _LOGGER.error("Failed to fetch folders/monitors: %s", err)
+            return self.async_abort(reason="cannot_connect")
+
+        return self.async_show_form(
+            step_id="import_options",
+            data_schema=_import_options_schema(
+                self._folders,
+                self._monitors,
+                user_input or {},
+            ),
+            errors=errors,
+        )
 
     async def async_step_reauth(
         self, entry_data: Mapping[str, Any]
@@ -230,24 +366,60 @@ class _TransientConfigEntry:
 
 
 class PageCrawlOptionsFlow(OptionsFlow):
-    """Handle PageCrawl options: update mode, interval, folder, tags."""
+    """Handle PageCrawl options: update mode, interval, and import scope."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Manage the options."""
+        options = self.config_entry.options
+        errors: dict[str, str] = {}
+
         if user_input is not None:
             # Normalize scan interval to the floor.
-            user_input[CONF_SCAN_INTERVAL] = max(
+            scan_interval = max(
                 int(user_input.get(CONF_SCAN_INTERVAL, DEFAULT_POLL_INTERVAL)),
                 MIN_SCAN_INTERVAL,
             )
-            # The (de)registration of webhook + PageCrawl hook and the reload
-            # are handled by the entry's update listener in __init__.py, which
-            # reacts to the new update_mode. Persisting the options triggers it.
-            return self.async_create_entry(title="", data=user_input)
+            mode = user_input.get(CONF_IMPORT_MODE, IMPORT_MODE_ALL)
+            folders = user_input.get(CONF_FOLDERS, []) or []
+            monitors = user_input.get(CONF_MONITORS, []) or []
+            if mode == IMPORT_MODE_FOLDERS and not folders:
+                errors[CONF_FOLDERS] = "import_no_folders"
+            elif mode == IMPORT_MODE_MONITORS and not monitors:
+                errors[CONF_MONITORS] = "import_no_monitors"
+            else:
+                # The (de)registration of webhook + PageCrawl hook and the
+                # reload are handled by the entry's update listener in
+                # __init__.py. Persisting the options triggers it.
+                return self.async_create_entry(
+                    title="",
+                    data={
+                        CONF_UPDATE_MODE: user_input.get(
+                            CONF_UPDATE_MODE, UPDATE_MODE_AUTO
+                        ),
+                        CONF_SCAN_INTERVAL: scan_interval,
+                        CONF_IMPORT_MODE: mode,
+                        CONF_FOLDERS: (
+                            folders if mode == IMPORT_MODE_FOLDERS else []
+                        ),
+                        CONF_MONITORS: (
+                            monitors if mode == IMPORT_MODE_MONITORS else []
+                        ),
+                    },
+                )
 
-        options = self.config_entry.options
+        # Re-fetch current folders/monitors so the selectors stay in sync.
+        folder_list, monitor_list = await self._async_fetch_scope_choices()
+
+        defaults: dict[str, Any] = {
+            CONF_IMPORT_MODE: options.get(CONF_IMPORT_MODE, IMPORT_MODE_ALL),
+            CONF_FOLDERS: options.get(CONF_FOLDERS, []),
+            CONF_MONITORS: options.get(CONF_MONITORS, []),
+        }
+        if user_input is not None:
+            defaults.update(user_input)
+
         schema = vol.Schema(
             {
                 vol.Required(
@@ -260,14 +432,42 @@ class PageCrawlOptionsFlow(OptionsFlow):
                         CONF_SCAN_INTERVAL, DEFAULT_POLL_INTERVAL
                     ),
                 ): vol.All(vol.Coerce(int), vol.Range(min=MIN_SCAN_INTERVAL)),
-                vol.Optional(
-                    CONF_FOLDER,
-                    default=options.get(CONF_FOLDER, ""),
-                ): str,
-                vol.Optional(
-                    CONF_TAGS,
-                    default=options.get(CONF_TAGS, ""),
-                ): str,
             }
+        ).extend(
+            _import_options_schema(
+                folder_list, monitor_list, defaults
+            ).schema
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(
+            step_id="init", data_schema=schema, errors=errors
+        )
+
+    async def _async_fetch_scope_choices(
+        self,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Fetch folders and monitors for the import-scope selectors."""
+        entry = self.config_entry
+        try:
+            implementation = await config_entry_oauth2_flow.async_get_config_entry_implementation(
+                self.hass, entry
+            )
+            session = config_entry_oauth2_flow.OAuth2Session(
+                self.hass, entry, implementation
+            )
+            client = PageCrawlClient(
+                session,
+                entry.data.get(CONF_BASE_URL, DEFAULT_BASE_URL),
+                entry.data.get(CONF_WORKSPACE_ID),
+            )
+            folders = await client.async_list_folders(
+                workspace_id=client.workspace_id
+            )
+            monitors = await client.async_list_pages(
+                workspace_id=client.workspace_id
+            )
+            return folders, monitors
+        except PageCrawlError as err:
+            _LOGGER.warning(
+                "Could not fetch folders/monitors for options: %s", err
+            )
+            return [], []

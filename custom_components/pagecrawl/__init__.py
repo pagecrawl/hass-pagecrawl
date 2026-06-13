@@ -30,7 +30,9 @@ from .const import (
     CONF_HOOK_ID,
     CONF_SIGNING_SECRET,
     CONF_SCAN_INTERVAL,
-    CONF_FOLDER,
+    CONF_FOLDERS,
+    CONF_IMPORT_MODE,
+    CONF_MONITORS,
     CONF_UPDATE_MODE,
     CONF_WEBHOOK_ID,
     CONF_WORKSPACE_ID,
@@ -38,6 +40,7 @@ from .const import (
     DEFAULT_POLL_INTERVAL,
     DEFAULT_PUSH_RECONCILE_INTERVAL,
     DOMAIN,
+    IMPORT_MODE_ALL,
     SERVICE_CHECK_NOW,
     SERVICE_TRACK_PAGE,
     UPDATE_MODE_AUTO,
@@ -118,12 +121,33 @@ async def async_setup_entry(
 
     update_mode = entry.options.get(CONF_UPDATE_MODE, UPDATE_MODE_AUTO)
     scan_interval = _resolve_interval(entry, update_mode)
-    folder = entry.options.get(CONF_FOLDER) or None
+    import_mode = entry.options.get(CONF_IMPORT_MODE, IMPORT_MODE_ALL)
+    folders = entry.options.get(CONF_FOLDERS, []) or []
+    monitors = entry.options.get(CONF_MONITORS, []) or []
 
     coordinator = PageCrawlDataUpdateCoordinator(
-        hass, entry, client, scan_interval, folder
+        hass,
+        entry,
+        client,
+        scan_interval,
+        import_mode=import_mode,
+        folders=folders,
+        monitors=monitors,
     )
     await coordinator.async_config_entry_first_refresh()
+
+    # Remove devices for monitors that are no longer in scope (e.g. a folder
+    # was deselected or a monitor removed from the selection).
+    _async_prune_stale_devices(hass, entry, coordinator.in_scope_ids)
+
+    # Keep pruning whenever the in-scope set changes on subsequent updates.
+    entry.async_on_unload(
+        coordinator.async_add_listener(
+            lambda: _async_prune_stale_devices(
+                hass, entry, coordinator.in_scope_ids
+            )
+        )
+    )
 
     # Set up push (webhook + PageCrawl hook) when the mode wants it.
     if update_mode in (UPDATE_MODE_AUTO, UPDATE_MODE_PUSH):
@@ -193,6 +217,33 @@ async def _async_update_listener(
 ) -> None:
     """Reload the entry when options change (re-evaluates push mode)."""
     await hass.config_entries.async_reload(entry.entry_id)
+
+
+@callback
+def _async_prune_stale_devices(
+    hass: HomeAssistant,
+    entry: PageCrawlConfigEntry,
+    in_scope_ids: set[int],
+) -> None:
+    """Remove devices for monitors no longer in the import scope.
+
+    Devices are identified by ``(DOMAIN, f"{entry_id}:{monitor_id}")``. Any such
+    device for this entry whose monitor id is not in ``in_scope_ids`` is removed
+    from the device registry (which cascades to its entities).
+    """
+    dev_reg = dr.async_get(hass)
+    for device in dr.async_entries_for_config_entry(dev_reg, entry.entry_id):
+        for domain, identifier in device.identifiers:
+            if domain != DOMAIN:
+                continue
+            _entry_id, _, monitor_raw = identifier.partition(":")
+            try:
+                monitor_id = int(monitor_raw)
+            except ValueError:
+                continue
+            if monitor_id not in in_scope_ids:
+                dev_reg.async_remove_device(device.id)
+            break
 
 
 def _resolve_interval(entry: ConfigEntry, update_mode: str) -> int:

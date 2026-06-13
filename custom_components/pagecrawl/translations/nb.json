@@ -11,10 +11,28 @@
           "workspace_id": "Arbeidsområde"
         }
       },
+      "import_options": {
+        "title": "Velg hva som skal importeres",
+        "description": "Velg hvilke overvåkere som blir Home Assistant-enheter. Importer alt i arbeidsområdet, bare valgte mapper, eller bare bestemte overvåkere.",
+        "data": {
+          "import_mode": "Importomfang",
+          "folders": "Mapper",
+          "monitors": "Overvåkere"
+        },
+        "data_description": {
+          "import_mode": "Alle importerer alle overvåkere i arbeidsområdet. Valgte mapper importerer bare overvåkere i mappene du velger. Valgte overvåkere importerer bare overvåkerne du velger.",
+          "folders": "Mapper som skal importeres. Brukes bare når omfanget er satt til valgte mapper.",
+          "monitors": "Overvåkere som skal importeres. Brukes bare når omfanget er satt til valgte overvåkere."
+        }
+      },
       "reauth_confirm": {
         "title": "Autentiser på nytt med PageCrawl",
         "description": "Tilgangen din til PageCrawl er utløpt eller ble tilbakekalt. Logg inn på nytt for å koble til dette arbeidsområdet igjen."
       }
+    },
+    "error": {
+      "import_no_folders": "Velg minst én mappe, eller endre omfanget.",
+      "import_no_monitors": "Velg minst én overvåker, eller endre omfanget."
     },
     "abort": {
       "already_configured": "Dette arbeidsområdet er allerede satt opp.",
@@ -46,16 +64,22 @@
         "data": {
           "update_mode": "Oppdateringsmodus",
           "scan_interval": "Spørringsintervall (sekunder)",
-          "folder": "Mappefilter",
-          "tags": "Etikettfilter"
+          "import_mode": "Importomfang",
+          "folders": "Mapper",
+          "monitors": "Overvåkere"
         },
         "data_description": {
           "update_mode": "Auto aktiverer push når en tilgjengelig URL finnes, og spør ellers. Push og spørring tvinger push med en treg avstemmingsspørring. Kun spørring registrerer aldri en webhook.",
           "scan_interval": "Hvor ofte det skal spørres, i sekunder. Minimum 60. Med push aktivert er dette bare en treg avstemmingssløyfe.",
-          "folder": "Begrens dette arbeidsområdet til én enkelt PageCrawl-mappe etter dens slug. La stå tomt for alle mapper.",
-          "tags": "Begrens til overvåkere med disse etikettene, atskilt med komma. La stå tomt for alle overvåkere."
+          "import_mode": "Alle importerer alle overvåkere i arbeidsområdet. Valgte mapper importerer bare overvåkere i mappene du velger. Valgte overvåkere importerer bare overvåkerne du velger.",
+          "folders": "Mapper som skal importeres. Brukes bare når omfanget er satt til valgte mapper.",
+          "monitors": "Overvåkere som skal importeres. Brukes bare når omfanget er satt til valgte overvåkere."
         }
       }
+    },
+    "error": {
+      "import_no_folders": "Velg minst én mappe, eller endre omfanget.",
+      "import_no_monitors": "Velg minst én overvåker, eller endre omfanget."
     }
   },
   "selector": {
@@ -64,6 +88,13 @@
         "auto": "Auto (push når tilgjengelig, ellers spørring)",
         "push": "Push og spørring",
         "poll": "Kun spørring"
+      }
+    },
+    "import_mode": {
+      "options": {
+        "all": "Alle overvåkere i arbeidsområdet",
+        "folders": "Valgte mapper",
+        "monitors": "Valgte overvåkere"
       }
     }
   },
@@ -130,6 +161,15 @@
       },
       "change_percent": {
         "name": "Endringsprosent"
+      },
+      "ai_summary": {
+        "name": "AI-sammendrag"
+      },
+      "ai_priority": {
+        "name": "AI-prioritet"
+      },
+      "last_change": {
+        "name": "Siste endring"
       }
     },
     "button": {
