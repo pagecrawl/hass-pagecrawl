@@ -20,6 +20,9 @@ for PageCrawl when those fall short:
 - **JavaScript-rendered pages:** prices, stock, and dashboards that load dynamically come back
   empty from a plain fetch or scrape. PageCrawl loads the page fully before reading it, so you
   still get a value.
+- **Pages that need steps first:** log in, click, accept a cookie banner, or fill a form before
+  the value appears. You configure those steps once in PageCrawl, and Home Assistant reads the
+  result as a sensor.
 - **AI extraction instead of brittle selectors:** describe the value in plain language ("the
   next collection date", "the current service status") and it keeps working even when the page
   layout changes and a CSS selector would break.
@@ -39,6 +42,7 @@ run entirely locally. Reach for PageCrawl only when they fall short:
 | The page is static, public HTML or a JSON API | The page needs JavaScript to render the value |
 | A stable CSS selector or JSON path exists | No reliable selector, or it breaks when the page changes |
 | The page has no login and allows automated requests | The page needs a login or blocks ordinary scrapers |
+| The value is visible on first load | The value only appears after a login, click, or form submission |
 | You only need the current value | You want change history, diffs, or a human/AI summary of what changed |
 | Any change to the value is meaningful | The page is noisy (ads, timestamps, reordered blocks) and you only want real changes |
 | You are happy maintaining the selector yourself | You want AI extraction and no scraping logic to maintain |
