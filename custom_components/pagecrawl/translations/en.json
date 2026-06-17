@@ -116,7 +116,7 @@
         },
         "slug": {
           "name": "Page slug",
-          "description": "PageCrawl monitor slug(s) to check, found in the monitor URL (pagecrawl.io/app/pages/<slug>)."
+          "description": "PageCrawl monitor slug(s) to check, found in the monitor URL, e.g. pagecrawl.io/app/pages/abc123."
         },
         "monitor_id": {
           "name": "Monitor id",
