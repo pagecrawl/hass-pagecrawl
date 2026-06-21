@@ -207,5 +207,13 @@ ELEMENT_TYPE_DEFAULT: Final[dict[str, str | None]] = {
     "kind": "text",
 }
 
+# Element types whose free-form text value we may auto-upgrade to a richer
+# sensor type (timestamp / numeric) when the value cleanly parses. Kept to the
+# extraction-style types: their output is a single value, unlike fullpage/html
+# which are large blobs that should always stay plain text.
+AUTO_DETECT_TYPES: Final[frozenset[str]] = frozenset(
+    {"ai_extract", "text", "json_path", "seo"}
+)
+
 # HA state string length limit; long text values are truncated to this.
 MAX_STATE_LENGTH: Final = 255

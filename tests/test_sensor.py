@@ -247,13 +247,12 @@ async def test_http_status_sensor(hass, setup_integration, mock_config_entry):
 
 
 async def test_text_sensors(hass, setup_integration, mock_config_entry):
-    """text / html / ai_extract / json_path / seo are short text sensors."""
+    """text / html / ai_extract / seo stay plain text sensors."""
     ent_reg = er.async_get(hass)
     expected = {
         20: "A short description",
         21: "<p>hi</p>",
         22: "AI extracted value",
-        23: "42",
         24: "Title | Meta",
     }
     for element_id, value in expected.items():
@@ -261,6 +260,21 @@ async def test_text_sensors(hass, setup_integration, mock_config_entry):
         assert state.state == value
         assert state.attributes["full_value"] == value
         assert state.attributes["truncated"] is False
+
+
+async def test_auto_detect_numeric_text_element(
+    hass, setup_integration, mock_config_entry
+):
+    """A json_path element whose value is a pure number is auto-upgraded to a
+    numeric (measurement) sensor, with the raw string kept in full_value."""
+    from homeassistant.components.sensor import SensorStateClass
+
+    ent_reg = er.async_get(hass)
+    # Element 23 is a json_path returning "42".
+    state = _sensor_state(hass, ent_reg, mock_config_entry, 23)
+    assert state.state == "42.0"
+    assert state.attributes["state_class"] == SensorStateClass.MEASUREMENT
+    assert state.attributes["full_value"] == "42"
 
 
 async def test_count_sensors(hass, setup_integration, mock_config_entry):
@@ -435,6 +449,103 @@ async def test_zero_element_monitor_still_has_device(
         identifiers={(DOMAIN, f"{mock_config_entry.entry_id}:3003")}
     )
     assert device is not None
+
+
+def test_detect_text_kind_classifies_values():
+    """Auto-detect upgrades dates and pure numbers, leaves prose as text."""
+    from custom_components.pagecrawl.sensor import _detect_text_kind
+
+    assert _detect_text_kind("2026-06-23") == "timestamp"
+    assert _detect_text_kind("2026-06-23T14:30:00Z") == "timestamp"
+    assert _detect_text_kind("19.99") == "numeric"
+    assert _detect_text_kind("1,234") == "numeric"
+    # Prose that merely contains a number stays text.
+    assert _detect_text_kind("Price: $19.99") == "text"
+    assert _detect_text_kind("Starfall Demo Mission") == "text"
+    assert _detect_text_kind("") == "text"
+    assert _detect_text_kind(None) == "text"
+
+
+def test_parse_timestamp_returns_aware_datetime():
+    """Dates and datetimes become tz-aware; non-dates return None."""
+    from custom_components.pagecrawl.sensor import _parse_timestamp
+
+    iso_date = _parse_timestamp("2026-06-23")
+    assert iso_date is not None
+    assert iso_date.tzinfo is not None
+    assert (iso_date.year, iso_date.month, iso_date.day) == (2026, 6, 23)
+
+    iso_dt = _parse_timestamp("2026-06-23T14:30:00+00:00")
+    assert iso_dt is not None
+    assert iso_dt.tzinfo is not None
+
+    # A later check that no longer parses degrades to None (sensor
+    # unavailable), never raising on a timestamp-typed entity.
+    assert _parse_timestamp("TBD") is None
+    assert _parse_timestamp(None) is None
+
+
+def test_strict_float_only_parses_whole_numeric_strings():
+    """Strict parse accepts clean numbers, rejects prose and booleans."""
+    from custom_components.pagecrawl.sensor import _strict_float
+
+    assert _strict_float("19.99") == 19.99
+    assert _strict_float("1,234") == 1234.0
+    assert _strict_float("2026") == 2026.0
+    assert _strict_float("Price: $19.99") is None
+    assert _strict_float("") is None
+    assert _strict_float(True) is None
+
+
+async def test_ai_extract_iso_date_becomes_timestamp_sensor(
+    hass, setup_integration, mock_config_entry
+):
+    """An ai_extract element whose value is an ISO date is auto-typed as a
+    TIMESTAMP sensor, with the raw string still in full_value."""
+    from homeassistant.components.sensor import SensorDeviceClass
+
+    ent_reg = er.async_get(hass)
+    coordinator = mock_config_entry.runtime_data.coordinator
+
+    monitor = {
+        "id": 4004,
+        "slug": "next-launch",
+        "name": "Next launch",
+        "url": "https://example.com/launches",
+        "status": "ok",
+        "last_checked_at": "2026-06-13T13:00:00.000000Z",
+        "latest": {
+            "contents": "2026-06-23",
+            "changed_at": "2026-06-13T13:00:00Z",
+        },
+        "elements": [
+            {"id": 70, "type": "ai_extract", "selector": "content",
+             "label": "Launch date"}
+        ],
+        "checks": [
+            {"id": 1, "elements": {
+                "70": {"element_id": 70, "contents": "2026-06-23"}}}
+        ],
+        "history": [],
+    }
+    data = dict(coordinator.data)
+    data[4004] = monitor
+    coordinator.async_set_updated_data(data)
+    await hass.async_block_till_done()
+
+    eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_4004_70"
+    )
+    assert eid is not None
+    state = hass.states.get(eid)
+    assert state.attributes["device_class"] == SensorDeviceClass.TIMESTAMP
+    # Date-only is read as midnight in HA's configured time zone, so the exact
+    # UTC offset depends on the test tz; assert the calendar date and that the
+    # value is a tz-aware ISO timestamp.
+    assert "2026-06-23" in state.state
+    assert state.state.endswith("+00:00")
+    # Raw extracted string preserved for templating / display.
+    assert state.attributes["full_value"] == "2026-06-23"
 
 
 async def test_check_now_service_targets_device(

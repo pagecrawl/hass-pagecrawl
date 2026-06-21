@@ -19,6 +19,7 @@ from homeassistant.util import dt as dt_util
 
 from . import PageCrawlConfigEntry
 from .const import (
+    AUTO_DETECT_TYPES,
     ELEMENT_TYPE_DEFAULT,
     ELEMENT_TYPE_MAP,
     MAX_STATE_LENGTH,
@@ -145,6 +146,75 @@ def _parse_float(value: Any) -> float | None:
         return None
 
 
+def _strict_float(value: Any) -> float | None:
+    """Parse a value as a number only when the whole string is numeric.
+
+    Unlike `_parse_float`, this does not strip surrounding letters/symbols, so
+    "19.99" parses but "Price: $19.99" does not. Used for auto-detection where
+    we must avoid mistaking a sentence that merely contains a number for a
+    numeric value.
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    cleaned = str(value).strip().replace(",", "")
+    if not cleaned:
+        return None
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+def _parse_timestamp(value: Any) -> datetime | None:
+    """Parse a value into a timezone-aware datetime, or None if it isn't one.
+
+    Accepts full ISO datetimes and date-only strings (interpreted as midnight
+    in Home Assistant's configured time zone). Returns None for anything that
+    does not cleanly parse, so a TIMESTAMP-typed sensor degrades to unavailable
+    rather than raising when a later check returns non-date text.
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        text = str(value).strip()
+        if not text:
+            return None
+        parsed = dt_util.parse_datetime(text)
+        if parsed is None:
+            date_only = dt_util.parse_date(text)
+            if date_only is None:
+                return None
+            parsed = datetime(date_only.year, date_only.month, date_only.day)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    return parsed
+
+
+def _detect_text_kind(value: Any) -> str:
+    """Classify a free-form text value as 'timestamp', 'numeric', or 'text'.
+
+    Timestamps are checked first because a date is more specific than a number.
+    Conservative by design: only a value that parses cleanly in full is
+    upgraded; anything else stays plain text.
+    """
+    if value is None:
+        return "text"
+    text = str(value).strip()
+    if not text:
+        return "text"
+    if _parse_timestamp(text) is not None:
+        return "timestamp"
+    if _strict_float(text) is not None:
+        return "numeric"
+    return "text"
+
+
 def get_ai_summary(monitor: dict[str, Any]) -> str | None:
     """Resolve the AI summary of the latest change.
 
@@ -261,6 +331,23 @@ class PageCrawlElementSensor(PageCrawlEntity, SensorEntity):
         elif state_class is not None:
             self._attr_state_class = state_class
 
+        # Conservative auto-detect: for extraction-style text elements, upgrade
+        # the sensor to a timestamp or numeric type when the current value
+        # cleanly parses as one. device_class is fixed for the entity's life, so
+        # we decide once here; native_value degrades to None if a later check no
+        # longer parses, keeping the typed sensor valid instead of raising.
+        self._auto_kind: str | None = None
+        if self._kind == "text" and self._element_type in AUTO_DETECT_TYPES:
+            detected = _detect_text_kind(
+                self.resolve_element_value(self._element_id)
+            )
+            if detected == "timestamp":
+                self._auto_kind = "timestamp"
+                self._attr_device_class = SensorDeviceClass.TIMESTAMP
+            elif detected == "numeric":
+                self._auto_kind = "numeric"
+                self._attr_state_class = SensorStateClass.MEASUREMENT
+
     def _element_dict(self) -> dict[str, Any]:
         """Return the element definition from the monitor (for currency etc.)."""
         for element in self.monitor.get("elements") or []:
@@ -291,6 +378,10 @@ class PageCrawlElementSensor(PageCrawlEntity, SensorEntity):
             return _parse_float(raw)
         if self._kind == "count":
             return len(_coerce_list(raw))
+        if self._auto_kind == "timestamp":
+            return _parse_timestamp(raw)
+        if self._auto_kind == "numeric":
+            return _strict_float(raw)
         return _truncate_state(raw)
 
     @property

@@ -181,6 +181,14 @@ Each monitor becomes a device. Each tracked element becomes one entity, chosen b
 | `boolean` | binary sensor | on when truthy |
 | `availability` | binary sensor | on when in stock |
 | `text`, `fullpage`, `html`, `ai_extract`, `json_path`, `seo` | sensor | text, truncated to 255 characters (full value in the `full_value` attribute) |
+
+For the extraction-style text types (`ai_extract`, `text`, `json_path`, `seo`), the entity is
+auto-upgraded when the value cleanly parses: an ISO date or datetime becomes a **timestamp**
+sensor (so you get relative time and countdowns), and a pure number becomes a **numeric
+measurement** sensor (so it charts). The raw extracted string is always kept in the
+`full_value` attribute. Tip: prompt an `ai_extract` element to return a normalised value (for
+example "Return only the date as YYYY-MM-DD") to make this reliable. If a later check no longer
+parses, the sensor reports unavailable rather than breaking its type.
 | `links`, `feed`, `leaderboard`, `text_multiple` | sensor | item count (items in the `items` attribute) |
 
 Every monitor also gets diagnostic entities (status, last checked, last change date, change
