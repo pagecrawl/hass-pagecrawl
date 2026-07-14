@@ -52,12 +52,41 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _validate_import_scope(
+    user_input: Mapping[str, Any],
+) -> tuple[dict[str, Any] | None, dict[str, str]]:
+    """Validate the import scope and normalize it into option values.
+
+    Returns ``(options, errors)``: on success ``options`` holds the import
+    mode plus the folder/monitor selections (keys not matching the mode are
+    zeroed); on failure ``options`` is None and ``errors`` maps the offending
+    field to its error key.
+    """
+    mode = user_input.get(CONF_IMPORT_MODE, IMPORT_MODE_ALL)
+    folders = user_input.get(CONF_FOLDERS, []) or []
+    monitors = user_input.get(CONF_MONITORS, []) or []
+    if mode == IMPORT_MODE_FOLDERS and not folders:
+        return None, {CONF_FOLDERS: "import_no_folders"}
+    if mode == IMPORT_MODE_MONITORS and not monitors:
+        return None, {CONF_MONITORS: "import_no_monitors"}
+    return {
+        CONF_IMPORT_MODE: mode,
+        CONF_FOLDERS: folders if mode == IMPORT_MODE_FOLDERS else [],
+        CONF_MONITORS: monitors if mode == IMPORT_MODE_MONITORS else [],
+    }, {}
+
+
 def _import_options_schema(
     folders: list[dict[str, Any]],
     monitors: list[dict[str, Any]],
     defaults: Mapping[str, Any],
 ) -> vol.Schema:
-    """Build the import-scope schema (mode + folder/monitor multi-selects)."""
+    """Build the import-scope schema (mode + folder/monitor multi-selects).
+
+    Saved selections are always merged into the selector options so that a
+    failed (or stale) fetch never invalidates the current values, which would
+    make the form impossible to submit.
+    """
     folder_options = [
         SelectOptionDict(
             value=str(f.get("slug")),
@@ -74,6 +103,22 @@ def _import_options_schema(
         for m in monitors
         if m.get("id") is not None
     ]
+
+    # Union in the saved values so they remain selectable options.
+    known_folders = {o["value"] for o in folder_options}
+    for slug in defaults.get(CONF_FOLDERS, []) or []:
+        if str(slug) not in known_folders:
+            folder_options.append(
+                SelectOptionDict(value=str(slug), label=str(slug))
+            )
+    known_monitors = {o["value"] for o in monitor_options}
+    for monitor_id in defaults.get(CONF_MONITORS, []) or []:
+        if str(monitor_id) not in known_monitors:
+            monitor_options.append(
+                SelectOptionDict(
+                    value=str(monitor_id), label=f"Monitor {monitor_id}"
+                )
+            )
 
     return vol.Schema(
         {
@@ -117,7 +162,7 @@ class PageCrawlOAuth2FlowHandler(
     """Handle the OAuth2 config flow for PageCrawl."""
 
     DOMAIN = DOMAIN
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         """Initialize flow state."""
@@ -253,21 +298,8 @@ class PageCrawlOAuth2FlowHandler(
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            mode = user_input.get(CONF_IMPORT_MODE, IMPORT_MODE_ALL)
-            folders = user_input.get(CONF_FOLDERS, []) or []
-            monitors = user_input.get(CONF_MONITORS, []) or []
-            if mode == IMPORT_MODE_FOLDERS and not folders:
-                errors[CONF_FOLDERS] = "import_no_folders"
-            elif mode == IMPORT_MODE_MONITORS and not monitors:
-                errors[CONF_MONITORS] = "import_no_monitors"
-            else:
-                options = {
-                    CONF_IMPORT_MODE: mode,
-                    CONF_FOLDERS: folders if mode == IMPORT_MODE_FOLDERS else [],
-                    CONF_MONITORS: (
-                        monitors if mode == IMPORT_MODE_MONITORS else []
-                    ),
-                }
+            options, errors = _validate_import_scope(user_input)
+            if options is not None:
                 return self.async_create_entry(
                     title=workspace_name,
                     data={
@@ -277,18 +309,20 @@ class PageCrawlOAuth2FlowHandler(
                     options=options,
                 )
 
-        # Fetch folders + monitors for the selectors.
-        client = self._build_client(self._token_data)
-        try:
-            self._folders = await client.async_list_folders(
-                workspace_id=workspace_id
-            )
-            self._monitors = await client.async_list_pages(
-                workspace_id=workspace_id
-            )
-        except PageCrawlError as err:
-            _LOGGER.error("Failed to fetch folders/monitors: %s", err)
-            return self.async_abort(reason="cannot_connect")
+        # Fetch folders + monitors for the selectors; reuse the cached lists on
+        # a validation-error redisplay instead of re-fetching.
+        if not self._folders and not self._monitors:
+            client = self._build_client(self._token_data)
+            try:
+                self._folders = await client.async_list_folders(
+                    workspace_id=workspace_id
+                )
+                self._monitors = await client.async_list_pages(
+                    workspace_id=workspace_id
+                )
+            except PageCrawlError as err:
+                _LOGGER.error("Failed to fetch folders/monitors: %s", err)
+                return self.async_abort(reason="cannot_connect")
 
         return self.async_show_form(
             step_id="import_options",
@@ -321,7 +355,9 @@ class PageCrawlOAuth2FlowHandler(
             _TransientConfigEntry(token_data),
             self.flow_impl,
         )
-        return PageCrawlClient(session, DEFAULT_BASE_URL)
+        return PageCrawlClient(
+            session, token_data.get(CONF_BASE_URL, DEFAULT_BASE_URL)
+        )
 
     @staticmethod
     def _extract_workspaces(user: dict[str, Any]) -> list[dict[str, Any]]:
@@ -381,14 +417,8 @@ class PageCrawlOptionsFlow(OptionsFlow):
                 int(user_input.get(CONF_SCAN_INTERVAL, DEFAULT_POLL_INTERVAL)),
                 MIN_SCAN_INTERVAL,
             )
-            mode = user_input.get(CONF_IMPORT_MODE, IMPORT_MODE_ALL)
-            folders = user_input.get(CONF_FOLDERS, []) or []
-            monitors = user_input.get(CONF_MONITORS, []) or []
-            if mode == IMPORT_MODE_FOLDERS and not folders:
-                errors[CONF_FOLDERS] = "import_no_folders"
-            elif mode == IMPORT_MODE_MONITORS and not monitors:
-                errors[CONF_MONITORS] = "import_no_monitors"
-            else:
+            scope_options, errors = _validate_import_scope(user_input)
+            if scope_options is not None:
                 # The (de)registration of webhook + PageCrawl hook and the
                 # reload are handled by the entry's update listener in
                 # __init__.py. Persisting the options triggers it.
@@ -399,13 +429,7 @@ class PageCrawlOptionsFlow(OptionsFlow):
                             CONF_UPDATE_MODE, UPDATE_MODE_AUTO
                         ),
                         CONF_SCAN_INTERVAL: scan_interval,
-                        CONF_IMPORT_MODE: mode,
-                        CONF_FOLDERS: (
-                            folders if mode == IMPORT_MODE_FOLDERS else []
-                        ),
-                        CONF_MONITORS: (
-                            monitors if mode == IMPORT_MODE_MONITORS else []
-                        ),
+                        **scope_options,
                     },
                 )
 
@@ -445,20 +469,29 @@ class PageCrawlOptionsFlow(OptionsFlow):
     async def _async_fetch_scope_choices(
         self,
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-        """Fetch folders and monitors for the import-scope selectors."""
+        """Fetch folders and monitors for the import-scope selectors.
+
+        Failures are non-fatal: the schema always merges the saved selections
+        into the options, so the form stays submittable even when the fetch
+        returns nothing.
+        """
         entry = self.config_entry
         try:
-            implementation = await config_entry_oauth2_flow.async_get_config_entry_implementation(
-                self.hass, entry
-            )
-            session = config_entry_oauth2_flow.OAuth2Session(
-                self.hass, entry, implementation
-            )
-            client = PageCrawlClient(
-                session,
-                entry.data.get(CONF_BASE_URL, DEFAULT_BASE_URL),
-                entry.data.get(CONF_WORKSPACE_ID),
-            )
+            runtime_data = getattr(entry, "runtime_data", None)
+            if runtime_data is not None:
+                client = runtime_data.client
+            else:
+                implementation = await config_entry_oauth2_flow.async_get_config_entry_implementation(
+                    self.hass, entry
+                )
+                session = config_entry_oauth2_flow.OAuth2Session(
+                    self.hass, entry, implementation
+                )
+                client = PageCrawlClient(
+                    session,
+                    entry.data.get(CONF_BASE_URL, DEFAULT_BASE_URL),
+                    entry.data.get(CONF_WORKSPACE_ID),
+                )
             folders = await client.async_list_folders(
                 workspace_id=client.workspace_id
             )
@@ -466,7 +499,8 @@ class PageCrawlOptionsFlow(OptionsFlow):
                 workspace_id=client.workspace_id
             )
             return folders, monitors
-        except PageCrawlError as err:
+        except (PageCrawlError, ValueError) as err:
+            # ValueError: missing OAuth implementation/credential.
             _LOGGER.warning(
                 "Could not fetch folders/monitors for options: %s", err
             )

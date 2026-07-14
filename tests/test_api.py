@@ -139,3 +139,19 @@ async def test_no_workspace_id_omitted() -> None:
     )
     await client.async_get_user()
     assert "workspace_id" not in session.async_request.await_args.kwargs["params"]
+
+
+async def test_list_pages_wraps_bare_folder_slug() -> None:
+    """A bare folder slug is sent as the server-parsed path shape."""
+    client, session = _client(_response(200, json_body=[]))
+    await client.async_list_pages(folder="groceries")
+    params = session.async_request.call_args.kwargs["params"]
+    assert params["folder"] == "/app/pages/folders/groceries/"
+
+
+async def test_list_pages_keeps_path_shaped_folder() -> None:
+    """An already path-shaped folder value is passed through unchanged."""
+    client, session = _client(_response(200, json_body=[]))
+    await client.async_list_pages(folder="/app/pages/folders/deals/")
+    params = session.async_request.call_args.kwargs["params"]
+    assert params["folder"] == "/app/pages/folders/deals/"

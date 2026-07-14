@@ -378,3 +378,67 @@ async def test_webhook_missing_signature_rejected(
     body = json.dumps({"id": 1001})
     resp = await _post_webhook(hass_client_no_auth, webhook_id, body, {})
     assert resp.status == 401
+
+
+async def test_migrate_v1_entry_with_legacy_folder(
+    hass: HomeAssistant,
+) -> None:
+    """A v1 entry with a legacy folder option becomes a folders-scoped v2 entry."""
+    from custom_components.pagecrawl import async_migrate_entry
+    from custom_components.pagecrawl.const import (
+        CONF_FOLDERS,
+        CONF_IMPORT_MODE,
+        CONF_MONITORS,
+    )
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=1,
+        data={CONF_WORKSPACE_ID: 7},
+        options={"folder": "groceries", "tags": ["a", "b"]},
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_migrate_entry(hass, entry)
+    assert entry.version == 2
+    assert entry.options[CONF_IMPORT_MODE] == "folders"
+    assert entry.options[CONF_FOLDERS] == ["groceries"]
+    assert entry.options[CONF_MONITORS] == []
+    assert "folder" not in entry.options
+    assert "tags" not in entry.options
+
+
+async def test_migrate_v1_entry_without_folder_defaults_all(
+    hass: HomeAssistant,
+) -> None:
+    """A v1 entry with no legacy folder migrates to import_mode=all."""
+    from custom_components.pagecrawl import async_migrate_entry
+    from custom_components.pagecrawl.const import (
+        CONF_FOLDERS,
+        CONF_IMPORT_MODE,
+        CONF_MONITORS,
+    )
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=1,
+        data={CONF_WORKSPACE_ID: 7},
+        options={"update_mode": "poll"},
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_migrate_entry(hass, entry)
+    assert entry.version == 2
+    assert entry.options[CONF_IMPORT_MODE] == "all"
+    assert entry.options[CONF_FOLDERS] == []
+    assert entry.options[CONF_MONITORS] == []
+    assert entry.options["update_mode"] == "poll"
+
+
+async def test_migrate_future_version_fails(hass: HomeAssistant) -> None:
+    """Entries from a future version are not downgraded."""
+    from custom_components.pagecrawl import async_migrate_entry
+
+    entry = MockConfigEntry(domain=DOMAIN, version=3, data={}, options={})
+    entry.add_to_hass(hass)
+    assert not await async_migrate_entry(hass, entry)

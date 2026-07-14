@@ -41,6 +41,7 @@ from .const import (
     DEFAULT_PUSH_RECONCILE_INTERVAL,
     DOMAIN,
     IMPORT_MODE_ALL,
+    IMPORT_MODE_FOLDERS,
     SERVICE_CHECK_NOW,
     SERVICE_TRACK_PAGE,
     UPDATE_MODE_AUTO,
@@ -101,6 +102,37 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     resolved, and is persisted by Home Assistant across restarts.
     """
     _async_register_services(hass)
+    return True
+
+
+async def async_migrate_entry(
+    hass: HomeAssistant, entry: PageCrawlConfigEntry
+) -> bool:
+    """Migrate old config entries to the current version."""
+    if entry.version > 2:
+        # Downgrade from a future version is not supported.
+        return False
+
+    if entry.version == 1:
+        # Version 1 entries used a single legacy `folder` slug (plus `tags`,
+        # which is dropped). Map it onto the import-scope options.
+        options = dict(entry.options)
+        legacy_folder = options.pop("folder", None)
+        options.pop("tags", None)
+        if legacy_folder:
+            options[CONF_IMPORT_MODE] = IMPORT_MODE_FOLDERS
+            options[CONF_FOLDERS] = [legacy_folder]
+        else:
+            options.setdefault(CONF_IMPORT_MODE, IMPORT_MODE_ALL)
+            options.setdefault(CONF_FOLDERS, [])
+        options.setdefault(CONF_MONITORS, [])
+        hass.config_entries.async_update_entry(
+            entry, options=options, version=2
+        )
+        _LOGGER.debug(
+            "Migrated PageCrawl entry %s to version 2", entry.entry_id
+        )
+
     return True
 
 
@@ -232,7 +264,16 @@ def _async_prune_stale_devices(
     Devices are identified by ``(DOMAIN, f"{entry_id}:{monitor_id}")``. Any such
     device for this entry whose monitor id is not in ``in_scope_ids`` is removed
     from the device registry (which cascades to its entities).
+
+    An empty in-scope set is never pruned against: the server can legitimately
+    return an empty list (e.g. enforced 2FA not yet enabled on the account),
+    and wiping every device on such a response would destroy all entities.
     """
+    if not in_scope_ids:
+        _LOGGER.debug(
+            "Skipping device prune for %s: no monitors in scope", entry.title
+        )
+        return
     dev_reg = dr.async_get(hass)
     for device in dr.async_entries_for_config_entry(dev_reg, entry.entry_id):
         for domain, identifier in device.identifiers:

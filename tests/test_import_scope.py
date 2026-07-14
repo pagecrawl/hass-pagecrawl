@@ -764,3 +764,179 @@ async def test_options_flow_validation_error(
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"] == {CONF_FOLDERS: "import_no_folders"}
+
+
+async def test_prune_skips_when_scope_empty(
+    hass: HomeAssistant, mock_config_entry
+) -> None:
+    """An empty in-scope set never prunes (guards against empty API responses)."""
+    from custom_components.pagecrawl import _async_prune_stale_devices
+
+    mock_config_entry.add_to_hass(hass)
+    _register_device(hass, mock_config_entry, 2001)
+    _register_device(hass, mock_config_entry, 2002)
+
+    # e.g. server returned 200 [] (enforced 2FA not enabled): keep everything.
+    _async_prune_stale_devices(hass, mock_config_entry, set())
+
+    dev_reg = dr.async_get(hass)
+    assert (
+        len(dr.async_entries_for_config_entry(dev_reg, mock_config_entry.entry_id))
+        == 2
+    )
+
+
+async def test_options_flow_fetch_failure_keeps_saved_values(
+    hass: HomeAssistant,
+    sample_folders,
+    multi_folder_pages,
+) -> None:
+    """When the scope fetch fails, saved selections stay valid and submittable."""
+    from custom_components.pagecrawl.api import PageCrawlError
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Acme Workspace",
+        unique_id=f"{USER_ID}:{WORKSPACE_ID}",
+        data={
+            "auth_implementation": DOMAIN,
+            "token": {
+                "access_token": "a",
+                "refresh_token": "r",
+                "expires_at": __import__("time").time() + 3600,
+                "token_type": "Bearer",
+            },
+            CONF_WORKSPACE_ID: WORKSPACE_ID,
+        },
+        options={
+            CONF_UPDATE_MODE: "poll",
+            CONF_SCAN_INTERVAL: 900,
+            CONF_IMPORT_MODE: IMPORT_MODE_FOLDERS,
+            CONF_FOLDERS: ["groceries"],
+        },
+    )
+    entry.add_to_hass(hass)
+    client = _options_client(sample_folders, multi_folder_pages)
+
+    with (
+        patch(
+            "custom_components.pagecrawl.PageCrawlClient", return_value=client
+        ),
+        patch(
+            "custom_components.pagecrawl.config_flow.PageCrawlClient",
+            return_value=client,
+        ),
+        patch(
+            "custom_components.pagecrawl.config_entry_oauth2_flow."
+            "async_get_config_entry_implementation",
+            AsyncMock(),
+        ),
+        patch(
+            "custom_components.pagecrawl.config_entry_oauth2_flow."
+            "OAuth2Session",
+            MagicMock(),
+        ),
+        patch(
+            "custom_components.pagecrawl.config_flow.config_entry_oauth2_flow."
+            "async_get_config_entry_implementation",
+            AsyncMock(),
+        ),
+        patch(
+            "custom_components.pagecrawl.config_flow.config_entry_oauth2_flow."
+            "OAuth2Session",
+            MagicMock(),
+        ),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        # The fetch fails from now on.
+        client.async_list_folders = AsyncMock(
+            side_effect=PageCrawlError("boom")
+        )
+        client.async_list_pages = AsyncMock(
+            side_effect=PageCrawlError("boom")
+        )
+
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        assert result["type"] == FlowResultType.FORM
+
+        # Saved slug must remain a valid selector option: submitting the
+        # current values (e.g. only changing scan_interval) must succeed.
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_UPDATE_MODE: "poll",
+                CONF_SCAN_INTERVAL: 1200,
+                CONF_IMPORT_MODE: IMPORT_MODE_FOLDERS,
+                CONF_FOLDERS: ["groceries"],
+            },
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert entry.options[CONF_FOLDERS] == ["groceries"]
+    assert entry.options[CONF_SCAN_INTERVAL] == 1200
+
+
+async def test_options_flow_missing_credential_does_not_crash(
+    hass: HomeAssistant,
+    sample_folders,
+    multi_folder_pages,
+) -> None:
+    """A ValueError from the OAuth implementation lookup is handled gracefully."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Acme Workspace",
+        unique_id=f"{USER_ID}:{WORKSPACE_ID}",
+        data={
+            "auth_implementation": DOMAIN,
+            "token": {
+                "access_token": "a",
+                "refresh_token": "r",
+                "expires_at": __import__("time").time() + 3600,
+                "token_type": "Bearer",
+            },
+            CONF_WORKSPACE_ID: WORKSPACE_ID,
+        },
+        options={
+            CONF_UPDATE_MODE: "poll",
+            CONF_SCAN_INTERVAL: 900,
+            CONF_IMPORT_MODE: IMPORT_MODE_FOLDERS,
+            CONF_FOLDERS: ["groceries"],
+        },
+    )
+    entry.add_to_hass(hass)
+    client = _options_client(sample_folders, multi_folder_pages)
+
+    with (
+        patch(
+            "custom_components.pagecrawl.PageCrawlClient", return_value=client
+        ),
+        patch(
+            "custom_components.pagecrawl.config_entry_oauth2_flow."
+            "async_get_config_entry_implementation",
+            AsyncMock(),
+        ),
+        patch(
+            "custom_components.pagecrawl.config_entry_oauth2_flow."
+            "OAuth2Session",
+            MagicMock(),
+        ),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        # Drop runtime_data so the flow must construct a client and hit the
+        # ValueError from the implementation lookup.
+        entry.runtime_data = None
+
+        with patch(
+            "custom_components.pagecrawl.config_flow.config_entry_oauth2_flow."
+            "async_get_config_entry_implementation",
+            AsyncMock(side_effect=ValueError("no credentials")),
+        ):
+            result = await hass.config_entries.options.async_init(
+                entry.entry_id
+            )
+        assert result["type"] == FlowResultType.FORM

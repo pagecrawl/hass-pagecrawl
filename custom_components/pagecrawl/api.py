@@ -150,7 +150,14 @@ class PageCrawlClient:
         folder: str | None = None,
         workspace_id: int | str | None = None,
     ) -> list[dict[str, Any]]:
-        """GET /api/pages?simple=1&take=1 -> list of monitor dicts."""
+        """GET /api/pages?simple=1&take=1 -> list of monitor dicts.
+
+        The server only applies a folder filter to path-shaped values like
+        ``/app/pages/folders/<slug>/``; a bare slug applies no filter at all,
+        so bare slugs are wrapped into that path shape here.
+        """
+        if folder is not None and not folder.startswith("/"):
+            folder = f"/app/pages/folders/{folder}/"
         params = self._params({"simple": 1, "take": 1, "folder": folder})
         if workspace_id is not None:
             params["workspace_id"] = workspace_id
