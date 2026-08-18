@@ -250,8 +250,6 @@ def sample_pages() -> list[dict[str, Any]]:
                     # Poll-path AI data lives on the most recent check.
                     "ai_summary": "The widget price dropped by 5 percent.",
                     "priority_score": 72,
-                    "ai_importance_tag": "price_drop",
-                    "is_noise": False,
                     "elements": {
                         "11": {
                             "element_id": 11,

@@ -650,8 +650,6 @@ async def test_ai_summary_sensor_poll_shape(
         == "The widget price dropped by 5 percent."
     )
     assert state.attributes["truncated"] is False
-    assert state.attributes["ai_importance_tag"] == "price_drop"
-    assert state.attributes["is_noise"] is False
 
 
 async def test_ai_summary_sensor_truncates(

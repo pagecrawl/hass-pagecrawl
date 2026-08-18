@@ -256,23 +256,6 @@ def get_ai_priority(monitor: dict[str, Any]) -> float | None:
     return _parse_float(score)
 
 
-def _ai_meta(monitor: dict[str, Any]) -> dict[str, Any]:
-    """Return ai_importance_tag / is_noise from latest or checks[0] if present."""
-    latest = monitor.get("latest") or {}
-    checks = monitor.get("checks") or []
-    check = (checks[0] if checks else {}) or {}
-    meta: dict[str, Any] = {}
-    tag = latest.get("ai_importance_tag") or check.get("ai_importance_tag")
-    if tag is not None:
-        meta["ai_importance_tag"] = tag
-    is_noise = latest.get("is_noise")
-    if is_noise is None:
-        is_noise = check.get("is_noise")
-    if is_noise is not None:
-        meta["is_noise"] = is_noise
-    return meta
-
-
 def _has_ai_data(monitor: dict[str, Any]) -> bool:
     """True when AI summary or priority is present for this monitor."""
     return get_ai_summary(monitor) is not None or get_ai_priority(monitor) is not None
@@ -476,13 +459,12 @@ class PageCrawlAiSummarySensor(PageCrawlEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Full summary text plus AI importance metadata."""
+        """Full summary text."""
         attrs: dict[str, Any] = {}
         summary = get_ai_summary(self.monitor)
         if summary is not None:
             attrs["full_value"] = summary[:MAX_ATTR_LENGTH]
             attrs["truncated"] = len(summary) > MAX_STATE_LENGTH
-        attrs.update(_ai_meta(self.monitor))
         return attrs
 
 
@@ -507,11 +489,6 @@ class PageCrawlAiPrioritySensor(PageCrawlEntity, SensorEntity):
     def native_value(self) -> float | None:
         """The AI priority score, or None when unavailable."""
         return get_ai_priority(self.monitor)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """AI importance metadata alongside the score."""
-        return _ai_meta(self.monitor)
 
 
 class PageCrawlLastChangeSensor(PageCrawlEntity, SensorEntity):
