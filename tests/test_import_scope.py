@@ -38,6 +38,7 @@ from custom_components.pagecrawl.const import (
     IMPORT_MODE_MONITORS,
     OAUTH_TOKEN_PATH,
 )
+from custom_components.pagecrawl.api import PageCrawlApiError
 from custom_components.pagecrawl.coordinator import (
     PageCrawlDataUpdateCoordinator,
 )
@@ -389,6 +390,14 @@ def _folder_aware_client(multi_folder_pages: dict[str, list[dict[str, Any]]]):
         return multi_folder_pages.get(folder, [])
 
     client.async_list_pages = AsyncMock(side_effect=_list_pages)
+    # Flat, non-nested tree by default; tests that care about descent override.
+    client.async_list_folders = AsyncMock(
+        return_value=[
+            {"id": 1, "slug": "electronics", "name": "Electronics", "parent_id": None},
+            {"id": 2, "slug": "groceries", "name": "Groceries", "parent_id": None},
+            {"id": 3, "slug": "empty", "name": "Empty", "parent_id": None},
+        ]
+    )
     return client
 
 
@@ -486,6 +495,59 @@ async def test_coordinator_monitors_mode_ignores_out_of_scope_push(
     assert client.async_list_pages.called is False
     assert events == []
     assert 2001 not in coordinator.data
+
+
+async def test_coordinator_folders_mode_includes_subfolders(
+    hass: HomeAssistant, mock_config_entry, multi_folder_pages
+) -> None:
+    """Selecting a parent folder also imports monitors in its subfolders.
+
+    The server's folder filter matches direct membership only, so the parent
+    slug alone returned nothing nested beneath it.
+    """
+    mock_config_entry.add_to_hass(hass)
+    client = _folder_aware_client(multi_folder_pages)
+    # "groceries" is nested under "electronics" purely to prove descent.
+    client.async_list_folders = AsyncMock(
+        return_value=[
+            {"id": 1, "slug": "electronics", "name": "Electronics", "parent_id": None},
+            {"id": 2, "slug": "groceries", "name": "Groceries", "parent_id": 1},
+        ]
+    )
+    coordinator = PageCrawlDataUpdateCoordinator(
+        hass,
+        mock_config_entry,
+        client,
+        update_interval=900,
+        import_mode=IMPORT_MODE_FOLDERS,
+        folders=["electronics"],
+    )
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    # 2001/2002 are directly in electronics, 2003 is in the nested groceries.
+    assert set(coordinator.data) == {2001, 2002, 2003}
+
+
+async def test_coordinator_folders_mode_survives_folder_list_failure(
+    hass: HomeAssistant, mock_config_entry, multi_folder_pages
+) -> None:
+    """If the folder tree cannot be read, fall back to direct membership."""
+    mock_config_entry.add_to_hass(hass)
+    client = _folder_aware_client(multi_folder_pages)
+    client.async_list_folders = AsyncMock(side_effect=PageCrawlApiError("boom"))
+    coordinator = PageCrawlDataUpdateCoordinator(
+        hass,
+        mock_config_entry,
+        client,
+        update_interval=900,
+        import_mode=IMPORT_MODE_FOLDERS,
+        folders=["electronics"],
+    )
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    assert set(coordinator.data) == {2001, 2002}
 
 
 async def test_coordinator_monitors_mode_in_scope_push_updates(

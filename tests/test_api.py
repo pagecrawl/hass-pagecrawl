@@ -155,3 +155,24 @@ async def test_list_pages_keeps_path_shaped_folder() -> None:
     await client.async_list_pages(folder="/app/pages/folders/deals/")
     params = session.async_request.call_args.kwargs["params"]
     assert params["folder"] == "/app/pages/folders/deals/"
+
+
+async def test_list_pages_without_folder_requests_every_folder() -> None:
+    """No folder must mean "all monitors", not just the root folder.
+
+    The server applies whereNull('folder_id') when the folder param is absent
+    and the team has folders enabled (the default), so omitting it hid every
+    monitor filed in a folder.
+    """
+    client, session = _client(_response(200, json_body=[]))
+    await client.async_list_pages()
+    params = session.async_request.call_args.kwargs["params"]
+    assert params["folder"] == "*"
+
+
+async def test_list_folders_requests_full_tree() -> None:
+    """Subfolders are only returned when all=1 is sent."""
+    client, session = _client(_response(200, json_body=[]))
+    await client.async_list_folders()
+    params = session.async_request.call_args.kwargs["params"]
+    assert params["all"] == 1

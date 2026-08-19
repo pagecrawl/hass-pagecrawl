@@ -78,7 +78,7 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
         if self.import_mode == IMPORT_MODE_FOLDERS and self.folders:
             # One call per folder slug, merged/deduped by monitor id.
             merged: dict[int, dict[str, Any]] = {}
-            for slug in self.folders:
+            for slug in await self._async_expand_folder_slugs():
                 pages = await self.client.async_list_pages(
                     folder=slug,
                     workspace_id=self.client.workspace_id,
@@ -95,6 +95,42 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
         return await self.client.async_list_pages(
             workspace_id=self.client.workspace_id,
         )
+
+    async def _async_expand_folder_slugs(self) -> list[str]:
+        """Return the selected folder slugs plus every slug nested under them.
+
+        The server's folder filter matches direct membership only
+        (``where('folder_id', ...)``), so a parent slug on its own returns
+        nothing filed in its subfolders. If the folder tree cannot be read we
+        fall back to direct membership rather than failing the whole refresh.
+        """
+        try:
+            folders = await self.client.async_list_folders(
+                workspace_id=self.client.workspace_id
+            )
+        except PageCrawlError as err:
+            _LOGGER.debug(
+                "Could not read the folder tree, importing direct members "
+                "only: %s",
+                err,
+            )
+            return list(self.folders)
+
+        children: dict[Any, list[dict[str, Any]]] = {}
+        for folder in folders:
+            children.setdefault(folder.get("parent_id"), []).append(folder)
+
+        slugs = list(self.folders)
+        seen = set(slugs)
+        queue = [f for f in folders if f.get("slug") in seen]
+        while queue:
+            for child in children.get(queue.pop().get("id"), []):
+                slug = child.get("slug")
+                if slug and slug not in seen:
+                    seen.add(slug)
+                    slugs.append(slug)
+                    queue.append(child)
+        return slugs
 
     def _in_scope(self, monitor_id: int) -> bool:
         """Return whether a monitor id is within the configured import scope."""

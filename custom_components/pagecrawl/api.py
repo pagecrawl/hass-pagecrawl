@@ -155,8 +155,15 @@ class PageCrawlClient:
         The server only applies a folder filter to path-shaped values like
         ``/app/pages/folders/<slug>/``; a bare slug applies no filter at all,
         so bare slugs are wrapped into that path shape here.
+
+        Omitting the folder param is NOT "everything": the server falls back
+        to whereNull('folder_id') whenever the team has folders enabled (the
+        default), which hides every monitor filed in a folder. "*" is the
+        explicit list-all value.
         """
-        if folder is not None and not folder.startswith("/"):
+        if folder is None:
+            folder = "*"
+        elif folder != "*" and not folder.startswith("/"):
             folder = f"/app/pages/folders/{folder}/"
         params = self._params({"simple": 1, "take": 1, "folder": folder})
         if workspace_id is not None:
@@ -172,8 +179,12 @@ class PageCrawlClient:
         self,
         workspace_id: int | str | None = None,
     ) -> list[dict[str, Any]]:
-        """GET /api/folders -> list of {id, name, slug} folder dicts."""
-        params = self._params()
+        """GET /api/folders?all=1 -> flat tree of folder dicts.
+
+        Without ``all`` the server returns root folders only, so nested
+        folders were unselectable in the import-scope picker.
+        """
+        params = self._params({"all": 1})
         if workspace_id is not None:
             params["workspace_id"] = workspace_id
         data = await self._request("GET", "/api/folders", params=params)
