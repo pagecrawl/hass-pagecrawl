@@ -7,7 +7,7 @@
     "dependencies": ["application_credentials", "webhook"],
     "documentation": "https://github.com/pagecrawl/hass-pagecrawl",
     "integration_type": "hub",
-    "iot_class": "cloud_polling",
+    "iot_class": "cloud_push",
     "issue_tracker": "https://github.com/pagecrawl/hass-pagecrawl/issues",
     "requirements": [],
     "version": "0.3.0"

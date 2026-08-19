@@ -576,7 +576,9 @@ def _last_checked_value(monitor: dict[str, Any]) -> datetime | None:
     if parsed is None:
         return None
     if parsed.tzinfo is None:
-        parsed = dt_util.as_utc(parsed)
+        # PageCrawl serializes latest.changed_at as naive UTC ("Y-m-d H:i:s").
+        # as_utc() would read it in the instance's local zone instead.
+        parsed = parsed.replace(tzinfo=dt_util.UTC)
     return parsed
 
 
@@ -588,7 +590,9 @@ def _last_changed_value(monitor: dict[str, Any]) -> datetime | None:
     if parsed is None:
         return None
     if parsed.tzinfo is None:
-        parsed = dt_util.as_utc(parsed)
+        # PageCrawl serializes latest.changed_at as naive UTC ("Y-m-d H:i:s").
+        # as_utc() would read it in the instance's local zone instead.
+        parsed = parsed.replace(tzinfo=dt_util.UTC)
     return parsed
 
 

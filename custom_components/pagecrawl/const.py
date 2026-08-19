@@ -98,7 +98,9 @@ ELEMENT_TYPE_MAP: Final[dict[str, dict[str, str | None]]] = {
     "price": {
         "platform": PLATFORM_SENSOR,
         "device_class": "monetary",
-        "state_class": "measurement",
+        # HA only permits TOTAL alongside the monetary device class;
+        # "measurement" logs a warning for every price entity.
+        "state_class": "total",
         "kind": "numeric",
     },
     "number": {

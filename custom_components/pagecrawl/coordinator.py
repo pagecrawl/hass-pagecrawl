@@ -251,6 +251,11 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
         ):
             if key in payload:
                 latest[key] = payload[key]
+        # The poll payload carries no screenshot; the webhook does, as a signed
+        # URL, so the primary sensor's screenshot_url is only ever populated by
+        # a push delivery.
+        if payload.get("page_screenshot_image"):
+            latest["screenshot_url"] = payload["page_screenshot_image"]
         monitor["latest"] = latest
 
         if "status" in payload:

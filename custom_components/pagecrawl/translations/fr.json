@@ -189,7 +189,7 @@
   "issues": {
     "push_unavailable": {
       "title": "Mises à jour push PageCrawl indisponibles",
-      "description": "PageCrawl n'a pas pu enregistrer les mises à jour push pour {workspace} car aucune URL joignable depuis l'extérieur n'est disponible. Ce workspace utilise désormais l'interrogation. Pour activer les mises à jour instantanées, connectez Home Assistant Cloud ou exposez une URL joignable, puis rechargez l'intégration."
+      "description": "PageCrawl n'a pas pu enregistrer les mises à jour push pour {workspace} car aucune URL joignable depuis l'extérieur n'est disponible. Ce workspace utilise désormais l'interrogation. Pour activer les mises à jour push, connectez Home Assistant Cloud ou exposez une URL joignable, puis rechargez l'intégration."
     }
   }
 }

@@ -91,9 +91,12 @@ track_page:
           multiline: true
     frequency:
       name: Frequency
-      description: How often PageCrawl rechecks the page.
+      description: >-
+        How often PageCrawl rechecks the page, in minutes. Use one of the
+        supported intervals, for example 60 (hourly), 1440 (daily) or
+        10080 (weekly). Values your plan does not allow are rejected.
       required: false
-      example: daily
+      example: "1440"
       selector:
         text:
     entry_id:

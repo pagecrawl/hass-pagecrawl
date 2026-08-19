@@ -530,3 +530,25 @@ def test_verify_signature_rejects_missing_inputs() -> None:
     assert verify_signature("", ts, body, "sha256=x") is False
     assert verify_signature(SIGNING_SECRET, ts, body, None) is False
     assert verify_signature(SIGNING_SECRET, None, body, "sha256=x") is False
+
+
+async def test_pushed_screenshot_url_is_exposed(
+    hass: HomeAssistant, mock_config_entry, sample_pages
+) -> None:
+    """The signed screenshot URL only ever arrives via a push delivery."""
+    coordinator = _make_coordinator(hass, mock_config_entry, sample_pages)
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    coordinator.apply_webhook_update(
+        _push_payload(
+            1001,
+            changed_at="2026-06-13T12:00:00.000000Z",
+            page_screenshot_image="https://pagecrawl.io/signed/shot.png",
+        )
+    )
+    await hass.async_block_till_done()
+
+    assert coordinator.data[1001]["latest"]["screenshot_url"] == (
+        "https://pagecrawl.io/signed/shot.png"
+    )

@@ -60,7 +60,7 @@
     "step": {
       "init": {
         "title": "Opções do PageCrawl",
-        "description": "Escolha como este workspace recebe atualizações. O modo push entrega as mudanças no momento em que o PageCrawl as detecta, mas precisa de uma URL que o PageCrawl consiga acessar (uma assinatura do Home Assistant Cloud funciona automaticamente). O modo de sondagem verifica apenas em intervalos definidos e funciona em instalações somente locais.",
+        "description": "Escolha como este workspace recebe atualizações. O modo push entrega cada mudança assim que uma verificação do PageCrawl a detecta, mas precisa de uma URL que o PageCrawl consiga acessar (uma assinatura do Home Assistant Cloud funciona automaticamente). O modo de sondagem verifica apenas em intervalos definidos e funciona em instalações somente locais.",
         "data": {
           "update_mode": "Modo de atualização",
           "scan_interval": "Intervalo de sondagem (segundos)",
@@ -189,7 +189,7 @@
   "issues": {
     "push_unavailable": {
       "title": "Atualizações push do PageCrawl indisponíveis",
-      "description": "O PageCrawl não conseguiu registrar atualizações push para {workspace} porque não há nenhuma URL acessível externamente. Este workspace está usando sondagem agora. Para ativar atualizações instantâneas, conecte o Home Assistant Cloud ou exponha uma URL acessível e, em seguida, recarregue a integração."
+      "description": "O PageCrawl não conseguiu registrar atualizações push para {workspace} porque não há nenhuma URL acessível externamente. Este workspace está usando sondagem agora. Para ativar atualizações push, conecte o Home Assistant Cloud ou exponha uma URL acessível e, em seguida, recarregue a integração."
     }
   }
 }

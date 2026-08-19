@@ -189,7 +189,7 @@
   "issues": {
     "push_unavailable": {
       "title": "Actualizaciones push de PageCrawl no disponibles",
-      "description": "PageCrawl no pudo registrar las actualizaciones push para {workspace} porque no hay ninguna URL accesible externamente disponible. Este workspace está usando ahora el sondeo. Para activar las actualizaciones instantáneas, conecta Home Assistant Cloud o expón una URL accesible y, a continuación, recarga la integración."
+      "description": "PageCrawl no pudo registrar las actualizaciones push para {workspace} porque no hay ninguna URL accesible externamente disponible. Este workspace está usando ahora el sondeo. Para activar las actualizaciones push, conecta Home Assistant Cloud o expón una URL accesible y, a continuación, recarga la integración."
     }
   }
 }

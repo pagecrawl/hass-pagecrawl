@@ -6,8 +6,8 @@
 [![License](https://img.shields.io/github/license/pagecrawl/hass-pagecrawl?style=for-the-badge)](LICENSE)
 
 Bring your [PageCrawl.io](https://pagecrawl.io) website monitors into Home Assistant as
-sensors you can view, chart, and automate on. Every monitor updates in real time the moment
-PageCrawl detects a change.
+sensors you can view, chart, and automate on. Every monitor updates as soon as a PageCrawl
+check detects a change.
 
 ### Great for (what `rest` and `scrape` sensors can't do)
 
@@ -181,20 +181,21 @@ Each monitor becomes a device. Each tracked element becomes one entity, chosen b
 | `boolean` | binary sensor | on when truthy |
 | `availability` | binary sensor | on when in stock |
 | `text`, `fullpage`, `html`, `ai_extract`, `json_path`, `seo` | sensor | text, truncated to 255 characters (full value in the `full_value` attribute) |
+| `links`, `feed`, `leaderboard`, `text_multiple` | sensor | item count (items in the `items` attribute) |
 
 For the extraction-style text types (`ai_extract`, `text`, `json_path`, `seo`), the entity is
 auto-upgraded when the value cleanly parses: an ISO date or datetime becomes a **timestamp**
 sensor (so you get relative time and countdowns), and a pure number becomes a **numeric
 measurement** sensor (so it charts). The raw extracted string is always kept in the
-`full_value` attribute. Tip: prompt an `ai_extract` element to return a normalised value (for
+`full_value` attribute. Note: prompt an `ai_extract` element to return a normalised value (for
 example "Return only the date as YYYY-MM-DD") to make this reliable. If a later check no longer
 parses, the sensor reports unavailable rather than breaking its type.
-| `links`, `feed`, `leaderboard`, `text_multiple` | sensor | item count (items in the `items` attribute) |
 
 Every monitor also gets diagnostic entities (status, last checked, last change date, change
-percent) so the device is never empty, even if its element types are unknown. Common attributes such as the
-URL, status, change percent, and diff and screenshot links are exposed on the primary
-sensor.
+percent) so the device is never empty, even if its element types are unknown. Common attributes
+such as the URL, status, change percent, and a diff link are exposed on the primary sensor. A
+`screenshot_url` attribute is added when a push delivery includes one; polling does not carry
+screenshots.
 
 Each monitor also gets a few per-monitor sensors that describe its latest change:
 
@@ -206,7 +207,7 @@ Each monitor also gets a few per-monitor sensors that describe its latest change
   appears only when AI analysis is enabled on that monitor.
 
 When a monitor tracks several elements, push updates carry the changed element's id, so each
-element's entity updates the instant its own value changes, not just the primary one. The
+element's entity updates when a check detects a change in its own value, not just the primary one. The
 reconciliation poll catches up any element that a missed delivery would have skipped.
 
 ## Services
@@ -325,7 +326,7 @@ action:
 ```
 
 **Back in stock: open the garage light and say it out loud.** Availability monitors are binary
-sensors, so the moment an item flips to in stock you can do something physical and announce it:
+sensors, so when a check finds an item back in stock you can do something physical and announce it:
 
 ```yaml
 alias: PS5 back in stock
@@ -351,7 +352,7 @@ action:
 
 **Battle stations when limited tickets go live.** Ticketing pages block ordinary scrapers, so
 Home Assistant cannot watch one on its own. PageCrawl tracks the page's availability and flips a
-binary sensor the moment it goes on sale, and the whole house reacts at once:
+binary sensor when a check finds it on sale, and the whole house reacts at once:
 
 ```yaml
 alias: Ticket drop battle stations
@@ -387,7 +388,7 @@ action:
 ```
 
 **Notify when an appointment slot opens.** PageCrawl monitors a login-gated booking page and
-exposes the number of open slots as a count sensor. Fire the moment it goes above zero:
+exposes the number of open slots as a count sensor. Fire when a check reports it above zero:
 
 ```yaml
 alias: Appointment slots available

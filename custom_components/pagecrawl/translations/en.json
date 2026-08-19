@@ -60,7 +60,7 @@
     "step": {
       "init": {
         "title": "PageCrawl options",
-        "description": "Choose how this workspace receives updates. Push delivers changes the moment PageCrawl detects them but needs a URL that PageCrawl can reach (a Home Assistant Cloud subscription works automatically). Polling only checks on a schedule and works on local-only installs.",
+        "description": "Choose how this workspace receives updates. Push delivers each change as soon as a PageCrawl check detects it, but needs a URL that PageCrawl can reach (a Home Assistant Cloud subscription works automatically). Polling only refreshes on a schedule and works on local-only installs.",
         "data": {
           "update_mode": "Update mode",
           "scan_interval": "Poll interval (seconds)",
@@ -189,7 +189,7 @@
   "issues": {
     "push_unavailable": {
       "title": "PageCrawl push updates unavailable",
-      "description": "PageCrawl could not register push updates for {workspace} because no externally reachable URL is available. This workspace is now using polling. To enable instant updates, connect Home Assistant Cloud or expose a reachable URL, then reload the integration."
+      "description": "PageCrawl could not register push updates for {workspace} because no externally reachable URL is available. This workspace is now using polling. To enable push updates, connect Home Assistant Cloud or expose a reachable URL, then reload the integration."
     }
   }
 }

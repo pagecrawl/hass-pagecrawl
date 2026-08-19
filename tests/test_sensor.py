@@ -12,6 +12,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
 from custom_components.pagecrawl.const import DOMAIN, SERVICE_TRACK_PAGE
+from custom_components.pagecrawl.sensor import (
+    _last_changed_value,
+    _last_checked_value,
+)
 
 
 def _build_client(pages: list[dict[str, Any]]) -> MagicMock:
@@ -72,7 +76,8 @@ async def test_price_sensor(hass, setup_integration, mock_config_entry):
     state = hass.states.get(eid)
     assert state.state == "100.0"
     assert state.attributes["device_class"] == "monetary"
-    assert state.attributes["state_class"] == "measurement"
+    # HA only allows TOTAL with the monetary device class.
+    assert state.attributes["state_class"] == "total"
     # Element currency (EUR) takes precedence over latest.currency.
     assert state.attributes["unit_of_measurement"] == "EUR"
 
@@ -896,3 +901,35 @@ async def test_diagnostics_redacts_secrets(hass, mock_config_entry):
     assert data["webhook_id"] == "**REDACTED**"
     # Non-secret data is preserved.
     assert data["workspace_id"] == 7
+
+
+async def test_naive_poll_timestamps_are_read_as_utc(hass: HomeAssistant) -> None:
+    """latest.changed_at is naive UTC, not HA-local.
+
+    The poll serializes it as 'Y-m-d H:i:s' in UTC. Interpreting it in the
+    instance's local zone shifted every Last change / Last checked value by
+    the local UTC offset.
+    """
+    from datetime import datetime
+
+    from homeassistant.util import dt as dt_util
+
+    await hass.config.async_set_time_zone("America/New_York")
+    expected = datetime(2026, 6, 13, 12, 0, tzinfo=dt_util.UTC)
+
+    monitor = {"latest": {"changed_at": "2026-06-13 12:00:00"}}
+    assert _last_changed_value(monitor) == expected
+    assert _last_checked_value(monitor) == expected
+
+
+async def test_iso_timestamps_keep_their_offset(hass: HomeAssistant) -> None:
+    """An explicit Z offset is respected rather than overridden."""
+    from datetime import datetime
+
+    from homeassistant.util import dt as dt_util
+
+    await hass.config.async_set_time_zone("America/New_York")
+    monitor = {"last_checked_at": "2026-06-13T12:00:00.000000Z"}
+    assert _last_checked_value(monitor) == datetime(
+        2026, 6, 13, 12, 0, tzinfo=dt_util.UTC
+    )
