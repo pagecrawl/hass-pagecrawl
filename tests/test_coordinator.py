@@ -46,6 +46,26 @@ def _make_coordinator(
     )
 
 
+def _push_payload(
+    monitor_id: int,
+    *,
+    check_id: int = 555001,
+    slug: str = "acme-widget",
+    **fields: Any,
+) -> dict[str, Any]:
+    """Build an outbound webhook body shaped like the real one.
+
+    Mirrors WebhookTransformer: the top-level ``id`` is the CHECK id and the
+    monitor id is only reachable at ``page.id``.
+    """
+    payload: dict[str, Any] = {
+        "id": check_id,
+        "page": {"id": monitor_id, "slug": slug, "name": "Acme Widget"},
+    }
+    payload.update(fields)
+    return payload
+
+
 async def test_parses_sample_payload(
     hass: HomeAssistant, mock_config_entry, sample_pages
 ) -> None:
@@ -135,13 +155,13 @@ async def test_change_event_enriches_ai_data_push_shape(
     hass.bus.async_listen(EVENT_CHANGE, lambda e: events.append(e))
 
     coordinator.apply_webhook_update(
-        {
-            "id": 1001,
-            "status": "ok",
-            "changed_at": "2026-06-13T12:00:00.000000Z",
-            "ai_summary": "Pushed AI summary from latest.",
-            "ai_priority_score": 91,
-        }
+        _push_payload(
+            1001,
+            status="ok",
+            changed_at="2026-06-13T12:00:00.000000Z",
+            ai_summary="Pushed AI summary from latest.",
+            ai_priority_score=91,
+        )
     )
     await hass.async_block_till_done()
 
@@ -214,14 +234,14 @@ async def test_apply_webhook_update_updates_state_and_fires(
     hass.bus.async_listen(EVENT_CHANGE, lambda e: events.append(e))
 
     coordinator.apply_webhook_update(
-        {
-            "id": 1001,
-            "status": "ok",
-            "contents": "88.00",
-            "difference": -12.0,
-            "human_difference": "Price dropped 12%",
-            "changed_at": "2026-06-13T12:00:00.000000Z",
-        }
+        _push_payload(
+            1001,
+            status="ok",
+            contents="88.00",
+            difference=-12.0,
+            human_difference="Price dropped 12%",
+            changed_at="2026-06-13T12:00:00.000000Z",
+        )
     )
     await hass.async_block_till_done()
 
@@ -247,10 +267,10 @@ async def test_apply_webhook_update_merges_elements_by_tracked_id(
     tracked_id = elements[-1]["id"]
 
     coordinator.apply_webhook_update(
-        {
-            "id": monitor_id,
-            "changed_at": "2026-06-13T12:30:00.000000Z",
-            "page_elements": [
+        _push_payload(
+            monitor_id,
+            changed_at="2026-06-13T12:30:00.000000Z",
+            page_elements=[
                 {
                     "id": 999999,  # ChangeHistory id (legacy, ignored for keying)
                     "element_id": tracked_id,
@@ -259,7 +279,7 @@ async def test_apply_webhook_update_merges_elements_by_tracked_id(
                     "changed": True,
                 }
             ],
-        }
+        )
     )
     await hass.async_block_till_done()
 
@@ -278,10 +298,89 @@ async def test_apply_webhook_update_unknown_monitor_refreshes(
     await hass.async_block_till_done()
 
     coordinator.client.async_list_pages.reset_mock()
-    coordinator.apply_webhook_update({"id": 2002, "contents": "x"})
+    coordinator.apply_webhook_update(_push_payload(2002, contents="x"))
     await hass.async_block_till_done()
 
     assert coordinator.client.async_list_pages.called
+
+
+async def test_apply_webhook_update_keys_on_page_id_not_check_id(
+    hass: HomeAssistant, mock_config_entry, sample_pages
+) -> None:
+    """The monitor is resolved from page.id; top-level id is the check id.
+
+    Regression: treating the top-level id as the monitor id meant no delivery
+    ever matched a polled monitor, so every push degraded to a full refresh.
+    """
+    coordinator = _make_coordinator(hass, mock_config_entry, sample_pages)
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    coordinator.client.async_list_pages.reset_mock()
+
+    coordinator.apply_webhook_update(
+        _push_payload(1001, check_id=987654, contents="77.00")
+    )
+    await hass.async_block_till_done()
+
+    # Merged into the existing monitor, not treated as a new/unknown one.
+    assert coordinator.data[1001]["latest"]["contents"] == "77.00"
+    assert 987654 not in coordinator.data
+    assert not coordinator.client.async_list_pages.called
+
+
+async def test_apply_webhook_update_ignores_payload_without_page_id(
+    hass: HomeAssistant, mock_config_entry, sample_pages
+) -> None:
+    """A delivery with no page.id is ignored rather than keyed by check id."""
+    coordinator = _make_coordinator(hass, mock_config_entry, sample_pages)
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    coordinator.client.async_list_pages.reset_mock()
+
+    coordinator.apply_webhook_update({"id": 555001, "contents": "nope"})
+    await hass.async_block_till_done()
+
+    assert coordinator.data[1001]["latest"]["contents"] == "100.00"
+    assert 555001 not in coordinator.data
+    assert not coordinator.client.async_list_pages.called
+
+
+async def test_pushed_change_does_not_refire_on_next_poll(
+    hass: HomeAssistant, mock_config_entry, sample_pages
+) -> None:
+    """Push and poll serialize changed_at differently for the same instant.
+
+    Push sends ISO-8601 ('...T12:00:00.000000Z'), the poll sends naive UTC
+    ('... 12:00:00'), so comparing raw strings fired a duplicate change event
+    on the first poll after every push.
+    """
+    coordinator = _make_coordinator(hass, mock_config_entry, sample_pages)
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    events: list[Any] = []
+    hass.bus.async_listen(EVENT_CHANGE, lambda e: events.append(e))
+
+    coordinator.apply_webhook_update(
+        _push_payload(
+            1001, contents="88.00", changed_at="2026-06-13T12:00:00.000000Z"
+        )
+    )
+    await hass.async_block_till_done()
+    assert len(events) == 1
+
+    # The next poll reports the same instant in the poll serialization.
+    polled = [dict(sample_pages[0])]
+    polled[0]["latest"] = {
+        **sample_pages[0]["latest"],
+        "contents": "88.00",
+        "changed_at": "2026-06-13 12:00:00",
+    }
+    coordinator.client.async_list_pages = AsyncMock(return_value=polled)
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    assert len(events) == 1
 
 
 async def test_auth_error_triggers_reauth(

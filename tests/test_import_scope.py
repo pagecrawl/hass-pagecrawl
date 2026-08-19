@@ -478,7 +478,9 @@ async def test_coordinator_monitors_mode_ignores_out_of_scope_push(
     client.async_list_pages.reset_mock()
 
     # 2001 is not in the selection -> dropped, no refresh, no event.
-    coordinator.apply_webhook_update({"id": 2001, "contents": "x"})
+    coordinator.apply_webhook_update(
+        {"id": 555001, "page": {"id": 2001}, "contents": "x"}
+    )
     await hass.async_block_till_done()
 
     assert client.async_list_pages.called is False
@@ -508,7 +510,9 @@ async def test_coordinator_monitors_mode_in_scope_push_updates(
 
     coordinator.apply_webhook_update(
         {
-            "id": 2003,
+            # Top-level id is the check id; the monitor is at page.id.
+            "id": 555003,
+            "page": {"id": 2003},
             "contents": "99.00",
             "changed_at": "2026-06-13T13:00:00.000000Z",
         }

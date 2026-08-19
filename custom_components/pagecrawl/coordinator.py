@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import (
     PageCrawlAuthError,
@@ -135,7 +136,7 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
     def _maybe_fire_change(self, monitor_id: int, page: dict[str, Any]) -> None:
         """Fire the change event when a monitor's changed_at advances."""
         latest = page.get("latest") or {}
-        changed_at = latest.get("changed_at")
+        changed_at = normalize_changed_at(latest.get("changed_at"))
         previous = self._last_changed_at.get(monitor_id)
         # Only fire when we have a prior value and it advanced (skip first seed).
         if (
@@ -176,10 +177,13 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
         is a PageCrawl outbound webhook body. If the monitor is unknown (new),
         we trigger a refresh so its device/entities get created.
         """
-        monitor_id_raw = payload.get("id")
-        if monitor_id_raw is None:
+        monitor_id = _resolve_monitor_id(payload)
+        if monitor_id is None:
+            _LOGGER.warning(
+                "Ignoring PageCrawl webhook delivery with no page.id; the hook "
+                "must include the 'page' payload field for push updates to work"
+            )
             return
-        monitor_id = int(monitor_id_raw)
 
         current = dict(self.data or {})
 
@@ -227,8 +231,12 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
         current[monitor_id] = monitor
         self.async_set_updated_data(current)
 
-        # Update change tracking and fire the event for the push delivery.
-        self._last_changed_at[monitor_id] = latest.get("changed_at")
+        # Update change tracking and fire the event for the push delivery. The
+        # value is normalized so the next poll, which serializes the same
+        # instant differently, does not read as a second change.
+        self._last_changed_at[monitor_id] = normalize_changed_at(
+            latest.get("changed_at")
+        )
         self._fire_change_event(monitor_id, monitor)
 
     @staticmethod
@@ -282,6 +290,42 @@ class PageCrawlDataUpdateCoordinator(DataUpdateCoordinator[dict[int, dict[str, A
         target = timedelta(seconds=self._base_interval)
         if self.update_interval != target:
             self.update_interval = target
+
+
+def _resolve_monitor_id(payload: dict[str, Any]) -> int | None:
+    """Resolve the monitor id from an outbound webhook body.
+
+    The payload's top-level ``id`` is the CHECK id; the monitor id is only
+    carried at ``page.id``. Hooks created by this integration request the full
+    default payload, so ``page`` is always present.
+    """
+    page = payload.get("page")
+    if not isinstance(page, dict):
+        return None
+    raw = page.get("id")
+    if raw is None or isinstance(raw, bool):
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def normalize_changed_at(value: Any) -> str | None:
+    """Canonicalize a PageCrawl timestamp so push and poll values compare equal.
+
+    Poll responses serialize ``latest.changed_at`` as naive UTC
+    ("2026-06-13 12:00:00") while webhook deliveries use ISO-8601 with a Z
+    suffix, so the same instant arrives as two different strings.
+    """
+    if not value:
+        return None
+    parsed = dt_util.parse_datetime(str(value))
+    if parsed is None:
+        return str(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=dt_util.UTC)
+    return parsed.astimezone(dt_util.UTC).isoformat()
 
 
 def _event_ai_summary(page: dict[str, Any]) -> str | None:

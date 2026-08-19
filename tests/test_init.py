@@ -279,7 +279,9 @@ async def test_webhook_valid_signature_updates_and_fires(
 
     body = json.dumps(
         {
-            "id": 1001,
+            # Top-level id is the check id; the monitor is at page.id.
+            "id": 555001,
+            "page": {"id": 1001, "slug": "acme-widget"},
             "contents": "77.00",
             "changed_at": "2026-06-13T15:00:00.000000Z",
         }
