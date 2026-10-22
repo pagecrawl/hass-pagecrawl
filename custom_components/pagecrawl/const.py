@@ -121,6 +121,15 @@ ELEMENT_TYPE_MAP: Final[dict[str, dict[str, str | None]]] = {
         "state_class": "measurement",
         "kind": "numeric",
     },
+    # How many units the page says are in stock: a whole number, or empty when
+    # the page shows no count (unknown in HA). The in/out of stock state is the
+    # "availability" type below, whose "kind" happens to be called "stock".
+    "stock": {
+        "platform": PLATFORM_SENSOR,
+        "device_class": None,
+        "state_class": "measurement",
+        "kind": "numeric",
+    },
     "http_status": {
         "platform": PLATFORM_SENSOR,
         "device_class": None,

@@ -933,3 +933,101 @@ async def test_iso_timestamps_keep_their_offset(hass: HomeAssistant) -> None:
     assert _last_checked_value(monitor) == datetime(
         2026, 6, 13, 12, 0, tzinfo=dt_util.UTC
     )
+
+
+def _stock_pages(contents: str) -> list[dict[str, Any]]:
+    """A price monitor that also saves how many units are in stock."""
+    now = "2026-10-02T10:00:00.000000Z"
+    return [
+        {
+            "id": 7007,
+            "slug": "stock-mon",
+            "name": "Stock Monitor",
+            "url": "https://example.com/stock",
+            "status": "ok",
+            "last_checked_at": now,
+            "latest": {"contents": "90.68", "difference": 0, "changed_at": now},
+            "elements": [
+                {"id": 70, "type": "price", "selector": None, "label": "Price"},
+                {
+                    "id": 71,
+                    "type": "availability",
+                    "selector": None,
+                    "label": "Availability",
+                },
+                {"id": 72, "type": "stock", "selector": None, "label": "Stock Level"},
+            ],
+            "checks": [
+                {
+                    "id": 7101,
+                    "status": "stock_recorded",
+                    "created_at": now,
+                    "elements": {
+                        "70": {"element_id": 70, "contents": "90.68"},
+                        "71": {"element_id": 71, "contents": "yes"},
+                        "72": {
+                            "element_id": 72,
+                            "contents": contents,
+                            "original": f"{contents} In Stock" if contents else None,
+                        },
+                    },
+                }
+            ],
+            "history": [],
+        }
+    ]
+
+
+async def _setup_pages(hass, mock_config_entry, pages):
+    client = _build_client(pages)
+    mock_config_entry.add_to_hass(hass)
+    with patch(
+        "custom_components.pagecrawl.PageCrawlClient", return_value=client
+    ), patch(
+        "custom_components.pagecrawl.config_entry_oauth2_flow."
+        "async_get_config_entry_implementation",
+        AsyncMock(),
+    ), patch(
+        "custom_components.pagecrawl.config_entry_oauth2_flow.OAuth2Session",
+        MagicMock(),
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+
+
+async def test_stock_level_sensor(hass, mock_config_entry, mock_no_push):
+    """A stock level is a measurement sensor holding the count, so HA keeps its
+    statistics; the availability element stays the in/out of stock binary sensor."""
+    await _setup_pages(hass, mock_config_entry, _stock_pages("7"))
+
+    ent_reg = er.async_get(hass)
+    eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_7007_72"
+    )
+    assert eid is not None
+    state = hass.states.get(eid)
+    assert state.state == "7.0"
+    assert state.attributes["state_class"] == "measurement"
+    assert "device_class" not in state.attributes
+    assert "unit_of_measurement" not in state.attributes
+
+    assert (
+        ent_reg.async_get_entity_id(
+            "binary_sensor", DOMAIN, f"{mock_config_entry.entry_id}_7007_71"
+        )
+        is not None
+    )
+
+
+async def test_stock_level_sensor_without_a_count(
+    hass, mock_config_entry, mock_no_push
+):
+    """A page that shows no count is saved empty, which HA reads as unknown
+    rather than as 0 (sold out)."""
+    await _setup_pages(hass, mock_config_entry, _stock_pages(""))
+
+    ent_reg = er.async_get(hass)
+    eid = ent_reg.async_get_entity_id(
+        "sensor", DOMAIN, f"{mock_config_entry.entry_id}_7007_72"
+    )
+    assert hass.states.get(eid).state == "unknown"
