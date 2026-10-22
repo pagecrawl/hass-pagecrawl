@@ -177,6 +177,7 @@ Each monitor becomes a device. Each tracked element becomes one entity, chosen b
 | `number` | sensor (measurement) | numeric value |
 | `rating` | sensor (measurement) | numeric value |
 | `reviews` | sensor (measurement) | numeric value |
+| `stock` | sensor (measurement) | units in stock, unknown when the page shows no count |
 | `http_status` | sensor | numeric status code |
 | `boolean` | binary sensor | on when truthy |
 | `availability` | binary sensor | on when in stock |
